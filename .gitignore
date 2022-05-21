@@ -1,0 +1,8 @@
+# Editor temporaries
+.*.swp
+.*.swo
+*~
+
+# Mac
+.DS_Store
+
