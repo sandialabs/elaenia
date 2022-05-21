@@ -1,0 +1,136 @@
+\documentclass[11pt]{article}
+
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+\usepackage{listings}
+\lstset{basicstyle=\small\ttfamily}
+
+\title{Kalman Filter Derivation}
+\author{Samuel D. Pollard}
+\date{June 1, 2023}
+
+\begin{document}
+\maketitle	
+
+This is based on examples from \url{https://www.cs.cornell.edu/courses/cs4758/2012sp/materials/MI63slides.pdf}
+Suppose we are heating a water kettle. We represent the temperature with a vector $x$ at time $t$. We model only the temperature $x_\tau$ and its heating rate $x_\rho$. The initial guess is the temperature in Berkeley today, and no heating.
+
+\[
+	x = \begin{bmatrix} x_\tau \\ x_\rho \end{bmatrix} = \begin{bmatrix} 14.0 \\ 0.0  \end{bmatrix}
+\]
+
+We model the evolution of the kettle over time (but F is fixed).
+
+\[
+	F = \begin{bmatrix} 1 & \Delta t \\ 0 & 1 \end{bmatrix}
+\]
+
+Which is to say,
+
+\begin{align*}
+	x_{\tau_n} &= x_{\tau_n} + \Delta t x_{\rho_{n-1}}  \\
+	x_{\rho_n} &= x_{\rho_{n-1}}.
+\end{align*}
+
+We can't measure heating rate directly, we only have temperature:
+
+\begin{align*}
+	H &= \begin{bmatrix} 1 & 0 \end{bmatrix} \\
+	y &= \begin{bmatrix} m & 0 \end{bmatrix}^\top
+\end{align*}
+(which is to say, we measure the unknown temperature with exactly the measurement variable $m$ ($H$ and $y$ are simplified in the C code to just be \verb|m|).
+
+The observation noise is some constant $R = r = 0.5$, and the process noise is some
+
+\[
+	Q = \begin{bmatrix} 0 & 0 \\ 0 & q \end{bmatrix}.
+\]
+
+The covariance matrix is:
+
+\[
+	P = \begin{bmatrix} p_\tau & p_{\tau \rho} \\ p_{\tau \rho} & p_\rho \end{bmatrix}.
+\]
+
+Which we initialize to
+
+\[
+	P_0 = \begin{bmatrix} 100 & 0 \\ 0 & 16 \end{bmatrix}.
+\]
+
+Note, in a full Kalman filter, we have a Control matrix $B$ (from control to state variables), the control variables $u$, which we both set to 0 (there is only one state).
+
+We apply the ``predict'' step:
+
+\begin{align*}
+	x_{t-1} &= F_t x_{t-1 | t-1} \\
+	P_{t-1} &= F_t P_{t-1 | t-1} F^{\top}_{t} + Q
+\end{align*}
+
+Which simplifies to the following (we can update the $x$ and $p$ in-place). Assume $\Delta t = 5$.
+\begin{align*}
+	x_\tau &\gets x_\tau + \Delta t x_\rho \\
+	x_\rho &\gets x_\rho \\
+	p_\tau &\gets p_\tau + p_{\tau\rho} + \Delta t (p_{\tau\rho} + p_\rho \Delta t) \\
+	p_\rho &\gets p_\rho + q\\
+	p_{\tau\rho} &\gets p_{\tau\rho} + p_\rho \Delta t
+\end{align*}
+
+Then we update the state as:
+\begin{align*}
+	x_t &= x_{t-1} + K (y - H x_{t-1}) \\
+	K_t &= P_{t-1} H^\top (H P_{t-1} H^\top + R)^{-1} \\
+	P_t &= (I - K H) P_{t-1}
+\end{align*}
+
+Which simplifies to
+\begin{align*}
+	x_\tau &\gets x_\tau + K_\tau (m - x_\tau) \\
+	x_\rho &\gets x_\rho \\
+	K_\tau &\gets p_\tau / (p_{\tau} + r) \\
+	K_\rho &\gets p_{\tau\rho} / (p_{\tau} + r) \\
+	p_\tau &\gets -p_\tau (K_\tau - 1) \\
+	p_\rho &\gets p_\rho - K_\rho p_{\tau\rho} \\
+	&\text{One of two things are equivalent?} \\
+	p_{\tau\rho} &\gets p_{\tau\rho}(1 - K_\tau) \\
+	p_{\tau\rho} &\gets p_{\tau\rho} - K_\rho p_\tau
+\end{align*}
+
+This was computed with the following matlab script:
+\begin{lstlisting}[language=matlab]
+syms pr pt ptr q r xt xr kt kr t m;
+sym t real; % No conjugate for transpose
+P = [pt, ptr; ptr, pr];
+Q = [0, 0; 0, q];
+F = [1, t; 0, 1];
+H = [1, 0];
+x = [xt; xr]; K = [kt; kr]; y = [m; 0];
+% Predict
+xn1 = F * x
+Pn1 = F * P * F' + Q
+% Update
+Kn = P*H'*(H*P*H'+r)^-1
+xn = x + K*(m - H*x)
+Pn = (eye(2) - K * H)*P
+% Pn doesn't look symmetric, but numerically it works.
+clear
+P = [100, 0; 0, 16];
+Q = [0, 0; 0, 0.25];
+r = 2.5; t = 5;
+F = [1, t; 0, 1]; H = [1, 0];
+x = [14; 0];
+for m = [19.70, 20.35, 20.09, 21.04, 17.79, 21.01, 22.25, ...
+         22.91, 25.54, 29.61, 30.38, 30.28, 33.73, 35.71]
+  y = [m; 0];
+  P = F * P * F' + Q;
+  K = P*H'*(H*P*H'+r)^-1;
+  x = x + K*(m - H*x);
+  P = (eye(2) - K*H)*P;
+end
+\end{lstlisting}
+
+% ptr*((pt + ptr*t + t*(ptr + pr*t))/(pt + r + ptr*t + t*(ptr + pr*t)) - 1)*(kt - 1)
+% vs
+% ptr - kr*pt + (pt*(ptr + pr*t)*(kt - 1))/(pt + r + ptr*t + t*(ptr + pr*t))
+
+\end{document}

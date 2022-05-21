@@ -1,0 +1,197 @@
+%%% Environnements dont le corps est suprimé, et
+%%% commandes dont la définition est vide,
+%%% lorsque PrintRemarks=false
+
+\usepackage{comment}
+\usepackage{etoolbox}
+\usepackage{xstring}
+
+% true = prints marks signaling the state of the implementation
+% false = prints only the ACSL definition, without remarks on implementation.
+\newtoggle{PrintImplementationRq}
+\IfEndWith*{\jobname}{implementation}
+  {\toggletrue{PrintImplementationRq}}
+  {\togglefalse{PrintImplementationRq}}
+
+% true = remarks about the current state of implementation in Frama-C
+% are in color.
+% false = they are rendered with an underline
+\newtoggle{ColorImplementationRq}
+\toggletrue{ColorImplementationRq}
+
+\newtoggle{isCPP}
+\IfBeginWith*{\jobname}{acslpp}{\toggletrue{isCPP}}{\togglefalse{isCPP}}
+
+\newcommand{\ifCPP}[1]{\iftoggle{isCPP}{\color{darkgreen}#1\color{black}}{}}
+\newcommand{\ifCPPinput}[1]{\ifCPP{\input{#1}}}
+%% ifCPP without color, as color does not work within grammar files
+\newcommand{\ifCPPnc}[1]{\iftoggle{isCPP}{#1}{}}
+\newcommand{\noCPP}[1]{\iftoggle{isCPP}{}{#1}}
+\iftoggle{isCPP}
+{\newcommand{\NAME}{ACSL++\xspace}\newcommand{\lang}{C++\xspace}}
+{\newcommand{\NAME}{ACSL\xspace}\newcommand{\lang}{C\xspace}}
+
+%%% Commandes et environnements pour la version relative à l'implementation
+\newcommand{\highlightnotimplemented}{%
+\iftoggle{ColorImplementationRq}{\color{red}}{\ul}%
+}%
+
+\newcommand{\ifImpl}[1]{\iftoggle{PrintImplementationRq}{\textit{#1}}{}}
+
+\newcommand{\notimplemented}[2][]{%
+  \iftoggle{PrintImplementationRq}{%
+    \begin{changebar}%
+      {\highlightnotimplemented #2}%
+      \notblank{#1}{\footnote{#1}}{}%
+    \end{changebar}%
+  }%
+  {#2}%
+}
+
+\newenvironment{notimplementedenv}[1][]{%
+  \iftoggle{PrintImplementationRq}{%
+    \begin{changebar}%
+      \notblank{#1}{\def\myrq{#1}{}}%
+      \highlightnotimplemented%
+      \bgroup
+    }{}
+}%
+{
+  \iftoggle{PrintImplementationRq}{%
+    \egroup%
+    \ifdef{\myrq}{\footnote{\myrq}}{}%
+  \end{changebar}}{}
+}
+
+%%% Environnements et commandes non conditionnelles
+\newcommand{\experimental}{\textsc{Experimental}}
+
+
+\newsavebox{\fmbox}
+\newenvironment{cadre}
+     {\begin{lrbox}{\fmbox}\begin{minipage}{0.98\textwidth}}
+     {\end{minipage}\end{lrbox}\fbox{\usebox{\fmbox}}}
+
+
+\newcommand{\keyword}[1]{\lstinline|#1|\xspace}
+\newcommand{\keywordbs}[1]{\lstinline|\\#1|\xspace}
+
+\newcommand{\integer}{\keyword{integer}}
+\newcommand{\real}{\keyword{real}}
+\newcommand{\bool}{\keyword{boolean}}
+
+\newcommand{\Loop}{\keyword{loop}}
+\newcommand{\assert}{\keyword{assert}}
+\newcommand{\terminates}{\keyword{terminates}}
+\newcommand{\assume}{\keyword{assume}}
+\newcommand{\requires}{\keyword{requires}}
+\newcommand{\ensures}{\keyword{ensures}}
+\newcommand{\exits}{\keyword{exits}}
+\newcommand{\returns}{\keyword{returns}}
+\newcommand{\breaks}{\keyword{breaks}}
+\newcommand{\continues}{\keyword{continues}}
+\newcommand{\assumes}{\keyword{assumes}}
+\newcommand{\frees}{\keyword{frees}}
+\newcommand{\allocates}{\keyword{allocates}}
+\newcommand{\invariant}{\keyword{invariant}}
+\newcommand{\variant}{\keyword{variant}}
+\newcommand{\assigns}{\keyword{assigns}}
+\newcommand{\reads}{\keyword{reads}}
+\newcommand{\decreases}{\keyword{decreases}}
+
+\newcommand{\boundseparated}{\keywordbs{bound\_separated}}
+\newcommand{\Exists}{\keywordbs{exists}~}
+\newcommand{\Forall}{\keywordbs{forall}~}
+\newcommand{\bslambda}{\keywordbs{lambda}~}
+\newcommand{\fullseparated}{\keywordbs{full\_separated}}
+\newcommand{\distinct}{\keywordbs{distinct}}
+\newcommand{\Max}{\keyword{max}}
+\newcommand{\nothing}{\keywordbs{nothing}}
+\newcommand{\numof}{\keyword{num\_of}}
+\newcommand{\offsetmin}{\keywordbs{offset\_min}}
+\newcommand{\offsetmax}{\keywordbs{offset\_max}}
+\newcommand{\old}{\keywordbs{old}}
+\newcommand{\at}{\keywordbs{at}}
+
+\newcommand{\If}{\keyword{if}~}
+\newcommand{\Then}{~\keyword{then}~}
+\newcommand{\Else}{~\keyword{else}~}
+\newcommand{\For}{\keyword{for}~}
+\newcommand{\While}{~\keyword{while}~}
+\newcommand{\Do}{~\keyword{do}~}
+\newcommand{\Let}{\keywordbs{let}~}
+\newcommand{\Break}{\keyword{break}}
+\newcommand{\Return}{\keyword{return}}
+\newcommand{\Continue}{\keyword{continue}}
+
+\newcommand{\exit}{\keyword{exit}}
+\newcommand{\main}{\keyword{main}}
+\newcommand{\void}{\keyword{void}}
+
+\newcommand{\volatile}{\keyword{volatile}}
+\newcommand{\struct}{\keyword{struct}}
+\newcommand{\union}{\keywordbs{union}}
+\newcommand{\inter}{\keywordbs{inter}}
+\newcommand{\typedef}{\keyword{typedef}}
+\newcommand{\result}{\keywordbs{result}}
+\newcommand{\exception}{\keywordbs{exception}}
+\newcommand{\separated}{\keywordbs{separated}}
+\newcommand{\sizeof}{\keyword{sizeof}}
+\newcommand{\strlen}{\keywordbs{strlen}}
+\newcommand{\Sum}{\keyword{sum}}
+\newcommand{\valid}{\keywordbs{valid}}
+\newcommand{\validread}{\keywordbs{valid\_read}}
+\newcommand{\offset}{\keywordbs{offset}}
+\newcommand{\blocklength}{\keywordbs{block\_length}}
+\newcommand{\baseaddr}{\keywordbs{base\_addr}}
+\newcommand{\allocation}{\keywordbs{allocation}}
+\newcommand{\allocable}{\keywordbs{allocable}}
+\newcommand{\freeable}{\keywordbs{freeable}}
+\newcommand{\fresh}{\keywordbs{fresh}}
+\newcommand{\comparable}{\keywordbs{comparable}}
+
+\newcommand{\N}{\ensuremath{\mathbb{N}}}
+\newcommand{\ra}{\ensuremath{\rightarrow}}
+\newcommand{\la}{\ensuremath{\leftarrow}}
+
+
+% BNF grammar
+\newcommand{\indextt}[1]{\index{#1@\protect\keyword{#1}}}
+\newcommand{\indexttbs}[1]{\index{#1@\protect\keywordbs{#1}}}
+\newif\ifspace
+\newif\ifnewentry
+\newcommand{\addspace}{\ifspace ~ \spacefalse \fi}
+\newcommand{\term}[2]{\addspace\hbox{\lstinline|#1|%
+\notblank{#2}{\indexttbase{#2}{#1}}{}}\spacetrue}
+\newcommand{\nonterm}[2]{%
+  \ifblank{#2}%
+   {\addspace\hbox{\textsl{#1}\ifnewentry\index{grammar entries!\textsl{#1}}\fi}\spacetrue}%
+   {\addspace\hbox{\textsl{#1}\footnote{#2}\ifnewentry\index{grammar entries!\textsl{#1}}\fi}\spacetrue}}
+\newcommand{\repetstar}{$^*$\spacetrue}
+\newcommand{\repetplus}{$^+$\spacetrue}
+\newcommand{\repetone}{$^?$\spacetrue}
+\newcommand{\lparen}{\addspace(}
+\newcommand{\rparen}{)}
+\newcommand{\orelse}{\addspace$\mid$\spacetrue}
+\newcommand{\sep}{ \\[2mm] \spacefalse\newentrytrue}
+\newcommand{\newl}{ \\ & & \spacefalse}
+\newcommand{\alt}{ \\ & $\mid$ & \spacefalse}
+\newcommand{\is}{ & $::=$ & \newentryfalse}
+\newenvironment{syntax}{\begin{tabular}{@{}rrll@{}}\spacefalse\newentrytrue}{\end{tabular}}
+\newcommand{\synt}[1]{$\spacefalse#1$}
+\newcommand{\emptystring}{$\epsilon$}
+\newcommand{\below}{See\; below}
+
+% colors
+
+\definecolor{darkgreen}{rgb}{0, 0.5, 0}
+
+% theorems
+
+\newtheorem{example}{Example}[chapter]
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-PDF-mode: t
+%%% TeX-master: "main"
+%%% End:

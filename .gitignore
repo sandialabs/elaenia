@@ -1,0 +1,42 @@
+# Editor temporaries
+.*.swp
+.*.swo
+*~
+
+# Mac
+.DS_Store
+
+# OCaml/Frama-C
+.Makefile.plugin.generated
+.depend
+META.*
+*.check_mli_exists
+*.cmi
+*.cmo
+*.cmt
+*.cmti
+*.cmx
+*.o
+top/
+.merlin
+ptests_config
+
+# Coq
+*.vos
+*.vok
+*.glob
+
+# LaTeX
+*.aux
+*.bbl
+*.blg
+*.cb
+*.cb2
+*.fdb_latexmk
+*.fls
+*.idx
+*.ilg
+*.ind
+*.log
+*.out
+*-eps-converted-to.pdf

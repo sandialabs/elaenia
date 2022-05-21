@@ -1,0 +1,109 @@
+\documentclass[11pt]{article}
+
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+\usepackage{listings}
+\lstset{basicstyle=\small\ttfamily}
+
+\title{Kalman Filter Derivation, GPS edition}
+\author{Samuel D. Pollard}
+\date{February 27, 2024}
+
+\begin{document}
+\maketitle
+
+Another reference, in particular with the Numerical Rounding Problems (p.~28)~\url{https://www.cs.cmu.edu/~motionplanning/papers/sbp_papers/kalman/kleeman_understanding_kalman.pdf}
+
+This is based on examples from \url{https://www.cs.cornell.edu/courses/cs4758/2012sp/materials/MI63slides.pdf} and \url{https://atmos.washington.edu/~breth/classes/AS552/lect/lect26.pdf}.
+
+Suppose we are tracking the position, velocity, and acceleration of an object moving along a straight road.
+
+We have the following:
+
+Predict
+\begin{align*}
+	x_n &= Fx_{n-1} + Bu \\
+	P_n   &= F P_{n-1} F^T + Q \\
+\end{align*}
+
+Update
+\begin{align*}
+	y &= z - H x_{n} \\
+	K_n &= P_{n} H^T (H P_n H^T + R)^{-1} \\
+	x_{n|n} &= x_n + K_n y \\
+	P_{n|n} &= (I - K_n H) P_n.
+\end{align*}
+
+However, we can simplify these equations based on our model of the physical system. Let us suppose there is no control-input model, so $B = \mathbf{0}$.
+
+Now, let us start with a covariance matrix with independent variables
+\[ P = 
+	\begin{bmatrix}
+	p_1 & 0   & 0  \\
+	0   & p_2 & 0  \\
+	0   & 0   & p_3
+	\end{bmatrix},
+\]
+with some guesses $p_1 = 100, p_2 = 25, p_3 = 1$.
+Next, we choose our state transition matrix $F$ to model a constant acceleration:
+\[ F =
+	\begin{bmatrix}
+	1 & \Delta t & \frac12 \Delta t^2 \\
+	0 & 1 & \Delta t \\
+	0 & 0 & 1
+	\end{bmatrix}
+\]
+
+The process noise is a bit more difficult to measure: this requires differential equations for our model of what causes the noise (wind resistance, hills, road conditions, etc.), and then the steps to discretize this. Since we can't be bothered to re-learn our DE coursework, we instead model this as discrete constant white noise from the following equation (source: \url{https://filterpy.readthedocs.io/en/latest/_modules/filterpy/common/discretization.html#Q_discrete_white_noise})
+
+\[ Q =
+	\begin{bmatrix}
+		\frac14 \Delta t^4 & \frac12 \Delta t^3 & \frac12 \Delta t^2 \\
+		\frac12 \Delta t^3 &         \Delta t^2 &         \Delta t \\
+		\frac12 \Delta t^2 &         \Delta t   &                1 \\
+	\end{bmatrix}
+\]
+
+The biggest simplification we can do is with the measurement space ($z$ and $H$). Since we only measure position, $z = [m]$ and so
+
+\begin{align*}
+	H   &= \begin{bmatrix} 1 & 0 & 0 \end{bmatrix} \\
+	[y] &= [m] - H x_n = (m - x_{n(1)}),
+\end{align*}
+
+Last, we have the measurement covariance $R = [r]$ ($1 \times 1$ since we only take a single measurement). For simplicity, let $\Delta t = 1$.
+
+\clearpage
+Putting this all together, we have
+
+Predict
+\begin{align*}
+	x_{n(1)} &= x_{n-1(1)} + x_{n-1(2)} + 0.5 x_{n-1(3)} \\
+	x_{n(2)} &= x_{n-1(2)} + x_{n-1(3)} \\
+	x_{n(3)} &= x_{n-1(3)} \\
+	P_n &= F P_{n-1} F^T + Q \\
+\end{align*}
+
+Update
+\begin{align*}
+	y_n &= m - x_{n(1)} \\
+	K_n &= \begin{bmatrix}
+		  P_{n(1,1)} / (P_{n(1,1)} + r) \\
+		  P_{n(2,1)} / (P_{n(1,1)} + r) \\
+		  P_{n(3,1)} / (P_{n(1,1)} + r)
+	\end{bmatrix} \\
+	x_{n|n} &= \begin{bmatrix}
+		x_{n(1)} + K_{n(1)}*(m - x_{n(1)}) \\
+		x_{n(2)} + K_{n(2)}*(m - x_{n(1)}) \\
+		x_{n(3)} + K_{n(3)}*(m - x_{n(1)})
+	\end{bmatrix} \\
+	P_{n|n} &= \begin{bmatrix}
+		1 - K_{n(1)}  &  0 & 0 \\
+		   - K_{n(2)} &  1 & 0 \\
+		   - K_{n(3)} &  0 & 1
+	\end{bmatrix} P_n.
+\end{align*}
+
+The algebra was derived with the attached MATLAB script.
+
+\end{document}
