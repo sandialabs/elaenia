@@ -1,21 +1,29 @@
 # Makefile for fpan plugin.
 # load - loads plugin using frama-c
 
-load: fpan.ml
-	frama-c -load-script $<
+# Set up options
+FRAMAC_SHARE := $(shell frama-c-config -print-share-path)
+PLUGIN_NAME = FPan
+PLUGIN_CMO = fpan_finder fpan_driver 
+# PLUGIN_TESTS_DIRS := fpan
+include $(FRAMAC_SHARE)/Makefile.dynamic
 
-register: fpan.ml
-	frama-c -load-script $< -plugins
+SOURCES = $(PLUGIN_CMO:.cmo=.ml) $(PLUGIN_CMO:.cmo=.mli) $(PLUGIN_NAME).mli
 
-help: fpan.ml
-	frama-c -load-script $< -fpan-help
+load: $(SOURCES)
+	frama-c -load-module top/FPan
 
-fpan: fpan.ml
-	frama-c -load-script $< -fpan
+list: $(SOURCES)
+	frama-c -load-module top/FPan -plugins
 
-verbose: fpan.ml
-	frama-c -load-script $< -fpan -fpan-verbose 2
+help: $(SOURCES)
+	frama-c -load-module top/FPan -fpan-help
 
-.PHONY: clean
-clean:
-	$(RM)
+fpan: $(SOURCES)
+	frama-c -load-module top/FPan -fpan
+
+verbose: $(SOURCES)
+	frama-c -load-module top/FPan -fpan -fpan-verbose 2
+
+test: $(SOURCES) tests/fpan/add.c
+	frama-c -load-module top/FPan -fpan -fpan-verbose 2 tests/fpan/add.c

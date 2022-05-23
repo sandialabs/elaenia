@@ -1,5 +1,7 @@
 (* Floating-Point Error Analysis Plugin *)
 
+open Fpan_finder
+
 let help_msg = "Floating-point error analysis plugin for frama-c using FPTaylor."
 
 module Self = Plugin.Register
@@ -24,28 +26,26 @@ module Output_file = Self.String
   end)
 
 let run () =
-  try
   if Enabled.get () then
     (* Set up File (or console) I/O *)
-    let outfile = Output_file.get () in
-    let output msg analysis =
-      if Output_file.is_default () then
-        Self.result "%s" (msg ^ "\n" ^ analysis)
-      else
-        let chan = open_out outfile in
-        Printf.fprintf chan "%s\n%s\n" msg analysis;
+    let output msg =
+      let chan = (
+        if Output_file.is_default ()
+        then stdout
+        else open_out (Output_file.get ()))
+      in
+      try
+        (* Perform the analysis *)
+        let fmt = Format.formatter_of_out_channel chan in
+        Self.feedback ~level:2 "Searching for FLOPs...";
+        Printf.fprintf chan "%s\n" msg;
+        Visitor.visitFramacFileSameGlobals (new find_flops fmt) (Ast.get ());
         flush chan;
         close_out chan;
+      with Sys_error _ as exc ->
+        let msg = Printexc.to_string exc in
+        Printf.eprintf "fpan: run: %s\n" msg
     in
-    (* Perform the analysis *)
-    let analysis =
-      Self.feedback ~level:2 "Computing 0.1 * 0.2...";
-      0.1 *. 0.2
-    in
-    (* Output analysis *)
-    output "Running fpan..." (Printf.sprintf "%h" analysis)
-  with Sys_error _ as exc ->
-    let msg = Printexc.to_string exc in
-    Printf.eprintf "fpan: run: %s\n" msg
+    output "Running fpan..."
 
 let () = Db.Main.extend run

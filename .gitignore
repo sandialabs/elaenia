@@ -6,3 +6,15 @@
 # Mac
 .DS_Store
 
+# Frama-C
+.Makefile.plugin.generated
+.depend
+META.*
+*.check_mli_exists
+*.cmi
+*.cmo
+*.cmt
+*.cmti
+*.cmx
+*.o
+top/
