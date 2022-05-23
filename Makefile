@@ -10,8 +10,11 @@ register: fpan.ml
 help: fpan.ml
 	frama-c -load-script $< -fpan-help
 
+fpan: fpan.ml
+	frama-c -load-script $< -fpan
+
 verbose: fpan.ml
-	frama-c -load-script $< -fpan-help
+	frama-c -load-script $< -fpan -fpan-verbose 2
 
 .PHONY: clean
 clean:
