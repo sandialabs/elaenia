@@ -10,6 +10,7 @@ let print_stmt out = function
 class find_flops out = object
   inherit Visitor.frama_c_inplace
 
+  (* Visit file *)
   method! vfile _ =
     Format.fprintf out "@[< hov 2> digraph {@ ";
     Cil.DoChildrenPost (fun f -> Format.fprintf out "}@]@."; f)
@@ -30,6 +31,6 @@ class find_flops out = object
     List.iter
       (fun succ -> Format.fprintf out "@[s%d -> s%d;@]@ " s.sid succ.sid)
       s.succs;
-    Format.fprintf out "@]"; Cil .DoChildren
+    Format.fprintf out "@]"; Cil.DoChildren
 end
 
