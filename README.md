@@ -33,11 +33,15 @@ to add type checking and other IDE stuff for OCaml.
 
 ### Building
 
-- `make` builds and expands.
-- `make install` is how you use it 
+- `make` builds the plugin, and stores it in `top`.
+- (Not stable) `make install` is how you install it on your system; it
+  installs in the same place that frama-c libraries are installed, so
+  you have to be able to write to there. With opam, this would be in
+  `~/.opam/switch/share/frama-c` (or something like that).
+- `make verbose` will run the help option, printing some diagnostics
 
 ## Usage
 
-Tjj
-
-
+- `make test` will run the analysis for the `tests/fpan/` directory.
+  Currently does not do much, but is a good way to check that
+_something_ gets executed.
