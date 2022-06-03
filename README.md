@@ -26,10 +26,15 @@ autoconf
 ./configure --prefix=$HOME/.local
 make -j8
 make install
+
+# It is also convenient to have the .merlin files to help with type annotations etc.
+make merlin
 ```
 
 I also recommend installing [merlin](https://github.com/ocaml/merlin)
-to add type checking and other IDE stuff for OCaml.
+to add type checking and other IDE stuff for OCaml. I recommend cloning
+this repo inside the `frama-c/src/plugins` directory if only because
+merlin will work better.
 
 ### Building
 
@@ -45,3 +50,34 @@ to add type checking and other IDE stuff for OCaml.
 - `make test` will run the analysis for the `tests/fpan/` directory.
   Currently does not do much, but is a good way to check that
 _something_ gets executed.
+
+## Structure of an FPTaylor Input File
+A complete guide is given
+[here](https://github.com/soarlab/FPTaylor/blob/develop/REFERENCE.md).
+
+An FPTaylor file is divided up into five portions, each containing
+a comma-separated list of statements and ending with a semicolon.
+
+```
+// Here is a line comment
+Constants
+  list stmt,
+;
+Variables
+  list stmt,
+;
+Definitions
+  list stmt,
+;
+Constraints
+  list stmt,
+;
+Expressions
+  list stmt,
+;
+```
+
+Only `Variables` and
+`Expressions` are required.
+
+`Variables`

@@ -26,4 +26,5 @@ verbose: $(SOURCES)
 	frama-c -load-module top/FPan -fpan -fpan-verbose 2
 
 test: $(SOURCES) tests/fpan/add.c
+	make
 	frama-c -load-module top/FPan -fpan -fpan-verbose 2 tests/fpan/add.c
