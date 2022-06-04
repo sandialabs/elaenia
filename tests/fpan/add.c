@@ -1,4 +1,10 @@
 
+// If sterbenz(x,y), then x-y has no error
+
+/*@ predicate sterbenz(double x, double y) =
+    y/2 <= x && x <= y*x;
+*/
+
 /*@ requires 0.0 <= x && x <= 1000.0;
  */
 double add(double x)
