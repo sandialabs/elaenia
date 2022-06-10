@@ -5,24 +5,27 @@ open Cil_types
 let print_stmt out = function
   | Instr i ->
     (match i with
-    | Set (lv,e,l) -> Format.fprintf out "lv: %a, e: %a, l: %a"
+    (* Assignment *)
+    | Set (lv,e,l) -> Format.fprintf out "Set: lv: %a, e: %a, l: %a"
       Printer.pp_lval lv Printer.pp_exp e Printer.pp_location l
-    | Call _ -> Format.fprintf out "Call "
-    | Local_init _ -> Format.fprintf out "Local_init "
-    | Asm _ -> Format.fprintf out "Asm "
+    (* Function Call, TODO: Support only limited functions (sqrt to start) *)
+    | Call _ -> Format.fprintf out "Call"
+    | Local_init _ -> Format.fprintf out "Local_init"
+    | Asm _ -> Format.fprintf out "Asm"
     | Skip _ -> Format.fprintf out "Skip "
-    | Code_annot _ -> Format.fprintf out "Code_annot ")
-  | Return _ -> Format.pp_print_string out "<return> "
-  | Goto _ -> Format.pp_print_string out "<goto> "
-  | Break _ -> Format.pp_print_string out "<break> "
-  | Continue _ -> Format.pp_print_string out "<continue> "
+    | Code_annot (a,_) -> Format.fprintf out "@[// %a@]" Printer.pp_code_annotation a
+    )
+  | Return _ -> Format.pp_print_string out "<return>"
+  | Goto _ -> Format.pp_print_string out "<goto>"
+  | Break _ -> Format.pp_print_string out "<break>"
+  | Continue _ -> Format.pp_print_string out "<continue>"
   | If (e,_,_,_) -> Format.fprintf out "if %a" Printer.pp_exp e
   | Switch (e,_,_,_) -> Format.fprintf out "switch %a" Printer.pp_exp e
   | Loop _ -> Format.fprintf out "Try unrolling loop"
-  | Block _ -> Format.fprintf out "<block> "
-  | UnspecifiedSequence _ -> Format.fprintf out "<unspecified sequence> "
-  | TryFinally _ | TryExcept _ | TryCatch _ -> Format.fprintf out "<try> "
-  | Throw _ -> Format.fprintf out "<throw> "
+  | Block _ -> Format.fprintf out "// {"
+  | UnspecifiedSequence _ -> Format.fprintf out "<unspecified sequence>"
+  | TryFinally _ | TryExcept _ | TryCatch _ -> Format.fprintf out "// try {"
+  | Throw _ -> Format.fprintf out "<throw>"
 (* | _       -> Printer.pp_binop out PlusA (TFloat(FDouble,[])) *)
 
 class find_flops out = object
@@ -34,19 +37,23 @@ class find_flops out = object
     Cil.DoChildrenPost (fun f -> Format.fprintf out "@."; f)
   
   (* Global definitions *)
+  (* TODO: Find where fundec.sspec can be found for a function definition
+     (a function spec is different from a global annotation)
+     Look into fundec.sspec. Funciton has sallstmts *)
   method! vglob_aux g =
     match g with
     | GFun(f,_) ->
       Format.fprintf out "{@.@[<hov 2> \
                           @[<h>// function@ %a@]@.\
-                          @[<hov 2> Variables@.@[<hv 2> ... @]@.@]@."
+                          @[<hov 2> Variables@.@[<hv 2> \
+                          ... \
+                          @]@.@]@."
           Printer.pp_varinfo f.svar;
       Cil.DoChildrenPost(fun g -> Format.fprintf out "@]@.}@."; g)
-    (* Note: Function annotations are not global annotations;
-       TODO: Figure out what _are_ global annotations anyway *)
+    (* Note: Function annotations are not global annotations *)
     | GAnnot(a,l) ->
       Format.fprintf out "@[<h>// Found global annotation %a@.\
-                               // location %a@]"
+                               // at location %a@]"
           Printer.pp_global_annotation a
           Printer.pp_location l;
       Cil.DoChildrenPost(fun g -> Format.fprintf out "\n"; g)
@@ -54,10 +61,10 @@ class find_flops out = object
   
   (* Statement *)
   method! vstmt_aux s =
-    Format.fprintf out "@[< hov 2> s%d@ [label=%S]@];@ "
+    Format.fprintf out "@[<hov2>  // id=%d, %S@."
       s.sid (Pretty_utils.to_string print_stmt s.skind);
     List.iter
-      (fun succ -> Format.fprintf out "@[s%d -> s%d;@]@ " s.sid succ.sid)
+      (fun succ -> Format.fprintf out "@[<h4>  // s%d -> s%d@]@." s.sid succ.sid)
       s.succs;
     Format.fprintf out "@]";
     Cil.DoChildren
