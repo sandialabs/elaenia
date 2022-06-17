@@ -9,12 +9,12 @@
  */
 double add(double x)
 {
-  return x + 0.2;
+	return x + 0.2;
 }
 
 int main(int argc, char *argv[])
 {
 	double x;
-  x = add(0.1);
+	x = add(0.1);
 	return 0;
 }

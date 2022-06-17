@@ -28,3 +28,13 @@ verbose: $(SOURCES)
 test: $(SOURCES) tests/fpan/add.c
 	make
 	frama-c -load-module top/FPan -fpan -fpan-verbose 2 tests/fpan/add.c
+
+eva: tests/fpan/square.c
+	frama-c -eva tests/fpan/square.c -main square
+	frama-c -eva tests/fpan/sterbenz.c -main sterbenz
+
+WP_PROVER = z3,cvc4,alt-ergo,gappa
+WP_OPT = -wp-rte -wp-prover $(WP_PROVER) -wp-timeout 10
+wp: tests/fpan/square.c tests/fpan/sterbenz.c
+	frama-c -wp $(WP_OPT) -wp-fct square $^
+	frama-c -wp $(WP_OPT) -wp-fct sterbenz $^
