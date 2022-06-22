@@ -1,11 +1,14 @@
 #include <stdio.h>
 
+// the "ensures" error bound was computed with
+// frama-c -eva tests/fpan/square.c -main square
 /*@ requires 0.001 <= x && x <= 1000.;
   @ ensures 1.00000011116e-06 <= \result && \result <= 1000000.;
   @ ensures \old(errno) == errno;
  */
 // TODO: Given `requires` clause, how can I generate `ensures` clause
 // automatically, using, e.g. frama-c -eva?
+// TODO: How can I prove the error bound for "ensures" using Gappa?
 double square(float x)
 {
 	return x*x;
