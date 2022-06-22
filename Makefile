@@ -31,6 +31,7 @@ test: $(SOURCES) tests/fpan/add.c
 
 eva: tests/fpan/square.c
 	frama-c -eva tests/fpan/square.c -main square
+	frama-c -eva tests/fpan/square_ptr.c -main square_ptr
 	frama-c -eva tests/fpan/sterbenz.c -main sterbenz
 
 WP_PROVER = z3,cvc4,alt-ergo,gappa
