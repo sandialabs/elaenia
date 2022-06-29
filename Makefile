@@ -36,6 +36,7 @@ eva: tests/fpan/square.c
 
 WP_PROVER = z3,cvc4,alt-ergo,gappa
 WP_OPT = -wp-rte -wp-prover $(WP_PROVER) -wp-timeout 10
-wp: tests/fpan/square.c tests/fpan/sterbenz.c
+wp: tests/fpan/square.c tests/fpan/square_ptr.c tests/fpan/sterbenz.c
 	frama-c -wp $(WP_OPT) -wp-fct square $^
+	frama-c -wp $(WP_OPT) -wp-fct square_ptr $^
 	frama-c -wp $(WP_OPT) -wp-fct sterbenz $^
