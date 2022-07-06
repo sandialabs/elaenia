@@ -28,7 +28,7 @@ let print_stmt out = function
   | Throw _ -> Format.fprintf out "<throw>"
 (* | _       -> Printer.pp_binop out PlusA (TFloat(FDouble,[])) *)
 
-class find_flops out = object
+class find_flops_fptaylor out = object
   inherit Visitor.frama_c_inplace
 
   (* Visit file *)
