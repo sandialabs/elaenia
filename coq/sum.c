@@ -3,7 +3,7 @@
   @ requires 0.0 <= k <= DBL_MAX / (double) (n+1);
   @ requires -k <= x[i] <= k forall i, k
   @ let true_acc = real_sum(x);
-  @ ensures \fp_error(acc, true_acc) <= k*eps;
+  @ ensures \fp_error(acc, true_acc) <= n*k*eps;
  */
 double sum (double *x, int n, double k)
 {
