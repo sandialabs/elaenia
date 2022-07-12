@@ -47,9 +47,22 @@ merlin will work better.
 
 ## Usage
 
+- `make wp` will run the weakest-precondition analysis for the test
+  files.
+- `make eva` will run (to get the ensures clauses, at first) for the
+  tests.
 - `make test` will run the analysis for the `tests/fpan/` directory.
   Currently does not do much, but is a good way to check that
-_something_ gets executed.
+  _something_ gets executed.
+
+## Some advice on Development
+
+## Roadmap
+- We want to have some code with a requires clause, generate the correct
+  input, then "discover" the output. Ways to do this: use FPTaylor, eva,
+  or Gappa. Then, generate a proof that the ensures clause holds.
+- Next, bake in some analyses for simple inputs. For example, summation
+  of an array can be simplified to the Higham formula.
 
 ## Structure of an FPTaylor Input File
 A complete guide is given
