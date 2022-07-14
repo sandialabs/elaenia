@@ -5,9 +5,9 @@
   @ requires \forall integer i; 0 <= i < n ==>
   @     \is_finite(x[i]) && -k <= x[i] <= k;
   @ requires INT_MIN <= n && n <= INT_MAX;
-  @ assigns \nothing
+  @ assigns \nothing;
 
-  @ ensures -k*n <= \exact(acc) <= k*n;
+  @ ensures -k*n <= \exact(\result) <= k*n;
  */
 
 //   requires 0.0 <= k <= DBL_MAX / (double) (n+1);
