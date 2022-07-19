@@ -4,7 +4,7 @@
   @ requires \is_finite(k) && k >= 0.0;
   @ requires \forall integer i; 0 <= i < n ==>
   @     \is_finite(x[i]) && -k <= x[i] <= k;
-  @ requires INT_MIN <= n && n <= INT_MAX;
+  @ requires 0 < n && n <= INT_MAX;
   @ assigns \nothing;
 
   @ ensures -k*n <= \exact(\result) <= k*n;
