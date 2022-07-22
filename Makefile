@@ -4,7 +4,7 @@
 # Set up options
 FRAMAC_SHARE := $(shell frama-c-config -print-share-path)
 PLUGIN_NAME = Fpan
-PLUGIN_CMO = fpan_finder_fptaylor fpan_finder_gappa fpan_driver
+PLUGIN_CMO = fpan_finder fpan_driver
 # PLUGIN_TESTS_DIRS := fpan
 include $(FRAMAC_SHARE)/Makefile.dynamic
 

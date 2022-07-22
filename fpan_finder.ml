@@ -3,8 +3,7 @@
 open Cil_types
 
 let print_stmt out = function
-  | Instr i ->
-    (match i with
+  | Instr i -> (match i with
     (* Assignment *)
     | Set (lv,e,l) -> Format.fprintf out "Set: lv: %a, e: %a, l: %a"
       Printer.pp_lval lv Printer.pp_exp e Printer.pp_location l
@@ -26,9 +25,8 @@ let print_stmt out = function
   | UnspecifiedSequence _ -> Format.fprintf out "<unspecified sequence>"
   | TryFinally _ | TryExcept _ | TryCatch _ -> Format.fprintf out "// try {"
   | Throw _ -> Format.fprintf out "<throw>"
-(* | _       -> Printer.pp_binop out PlusA (TFloat(FDouble,[])) *)
 
-class find_flops_fptaylor out = object
+class find_flops out = object
   inherit Visitor.frama_c_inplace
 
   (* Visit file *)
@@ -39,7 +37,7 @@ class find_flops_fptaylor out = object
   (* Global definitions *)
   (* TODO: Find where fundec.sspec can be found for a function definition
      (a function spec is different from a global annotation)
-     Look into fundec.sspec. Funciton has sallstmts *)
+     Look into fundec.sspec. *)
   method! vglob_aux g =
     match g with
     | GFun(f,_) ->
