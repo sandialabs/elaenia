@@ -24,7 +24,7 @@
 
   @ ensures \is_finite(\result);
   @ ensures \result == \sum(0,n-1,\lambda integer i; x[i]);
-  @ ensures \abs(\exact(\result) - \result) <= k*n*0x1p-52
+  @ ensures \abs(\exact(\result) - \result) <= k*n*0x1p-52;
  */
 
 double sum (double *x, int n, double k)

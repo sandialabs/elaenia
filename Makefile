@@ -40,8 +40,6 @@ wp: tests/fpan/square.c tests/fpan/square_ptr.c tests/fpan/sterbenz.c
 	frama-c -wp $(WP_OPT) -wp-fct square $^
 	frama-c -wp $(WP_OPT) -wp-fct square_ptr $^
 	frama-c -wp $(WP_OPT) -wp-fct sterbenz $^
-	
-	frama-c -wp -wp-rte -wp-out output -wp-print -wp-interactive fix  -wp-prover Gappa,Z3,coq,alt-ergo coq/sum.c
 
 gappa: tests/gappa/square.g
 	gappa -Bcoq tests/gappa/square.g > square.v
