@@ -1,0 +1,12 @@
+(** example-driver driver *)
+
+printer "fptaylor"
+
+(* look at `src/driver/driver.ml` in the why3 source tree for how to set a
+filename format *)
+(* filename "<filename-format>" *)
+filename "%f-%t-%g.fptaylor"
+
+time "why3cpulimit time : %s s"
+fail "Error: \\(.*\\)" "\\1"
+

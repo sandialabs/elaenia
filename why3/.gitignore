@@ -1,0 +1,13 @@
+
+# OCaml/Why3
+_build/
+install/
+*.install
+
+# Editors and OS
+.DS_Store
+.*.sw[o-p]
+
+# Logging and output
+*.out
+bench/log/

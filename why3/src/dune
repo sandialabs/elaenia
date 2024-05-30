@@ -1,0 +1,19 @@
+(library
+  (public_name fptaylor)
+  (library_flags -linkall)
+  (modules fptaylor)
+  (libraries why3))
+
+(install
+  (section lib_root)
+  (files
+    (fptaylor.cmxs as why3/plugins/fptaylor.cmxs))
+  (package fptaylor))
+
+(install
+  (section share_root)
+  (files
+    (fptaylor.drv as why3/drivers/fptaylor.drv))
+  (package fptaylor))
+
+;; https://dune.readthedocs.io/en/stable/quick-start.html

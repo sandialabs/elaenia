@@ -1,0 +1,13 @@
+Variables
+    float32 x in [1.0, 10.0]
+  , float32 y in [1.0, 10.0]
+;
+
+Definitions
+  sum rnd32= x + y
+;
+  
+
+Expressions
+  sum
+;
