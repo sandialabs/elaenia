@@ -6,7 +6,7 @@
 # Mac
 .DS_Store
 
-# Frama-C
+# OCaml/Frama-C
 .Makefile.plugin.generated
 .depend
 META.*
@@ -18,3 +18,5 @@ META.*
 *.cmx
 *.o
 top/
+.merlin
+

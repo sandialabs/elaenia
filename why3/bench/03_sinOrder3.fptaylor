@@ -1,0 +1,16 @@
+Variables
+    float64 x in [-2.0, 2.0]
+;
+
+Definitions
+    e1 rnd64= (0.954929658551372 * x)
+  , e2 rnd64= (x * x)
+  , e3 rnd64= e2 * x
+  , e4 rnd64= 0.12900613773279798 * e3
+  , e5 rnd64= e1 - e4
+;
+
+
+Expressions
+  e5
+;

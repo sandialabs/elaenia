@@ -1,0 +1,12 @@
+Variables
+    float64 x in [-2.0, 2.0]
+;
+
+Definitions
+    ret rnd64= (0.954929658551372 * x) - (0.12900613773279798 * ((x * x) * x))
+;
+  
+
+Expressions
+  ret
+;

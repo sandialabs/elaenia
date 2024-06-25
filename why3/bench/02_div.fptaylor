@@ -7,7 +7,7 @@ Definitions
     div rnd32= x / y
   , r   rnd64= div
 ;
-  
+
 
 Expressions
   r
