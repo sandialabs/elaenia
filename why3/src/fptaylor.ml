@@ -24,7 +24,8 @@ open Printer
 
 
 let rec print_decl args ?old:_ fmt task =
-  Format.fprintf fmt "hello world"
+  Format.fprintf fmt "hello world";
+  pp_print_flush fmt ()
 
 
 let ng suffix ?fname m =
@@ -33,7 +34,7 @@ let ng suffix ?fname m =
   "test.fptaylor"
   (* (module_name ?fname path mod_name) ^ suffix *)
 
-let fptaylor_printer = Pdriver.{
+(* let fptaylor_printer = Pdriver.{
     desc = "printer for FPtaylor";
     implem_printer = {
         filename_generator = ng ".fptaylor";
@@ -43,7 +44,7 @@ let fptaylor_printer = Pdriver.{
         footer_printer = dummy_border_printer;
       };
     interf_printer = None
-  }
+  } *)
 
 
-let () = Pdriver.register_printer "fptaylor" print_task
+let () = Why3.Printer.register_printer "fptaylor" print_decl ~desc:"Code generator for FPTaylor language"
