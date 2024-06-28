@@ -48,3 +48,4 @@ let ng suffix ?fname m =
 
 
 let () = Why3.Printer.register_printer "fptaylor" print_decl ~desc:"Code generator for FPTaylor language"
+let () = List.iter (fun (s,_) -> (printf "%s\n" s)) (Why3.Printer.list_printers ())
