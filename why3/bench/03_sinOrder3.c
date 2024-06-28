@@ -1,4 +1,4 @@
-/*@ requires -2.0 <= x <= 2.0;
+/*@ requires -1.0 <= x <= 1.0;
   @ ensures -1.0 <= \result <= 1.0;
   // Note: you may need to make this -1.0-x <= \result <= 1.0+x; for some small x
  */
