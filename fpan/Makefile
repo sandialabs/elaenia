@@ -6,9 +6,13 @@ FRAMAC_SHARE := $(shell frama-c-config -print-share-path)
 PLUGIN_NAME = Fpan
 PLUGIN_CMO = fpan_finder fpan_driver
 # PLUGIN_TESTS_DIRS := fpan
-include $(FRAMAC_SHARE)/Makefile.dynamic
+include $(FRAMAC_SHARE)/Makefile.common
+include $(FRAMAC_SHARE)/Makefile.testing
+include $(FRAMAC_SHARE)/Makefile.installation
 
 SOURCES = $(PLUGIN_CMO:.cmo=.ml) $(PLUGIN_CMO:.cmo=.mli) $(PLUGIN_NAME).mli
+
+.PHONY: load list help test eva clean wp gappa
 
 load: $(SOURCES)
 	frama-c -load-module top/fpan
@@ -16,7 +20,7 @@ load: $(SOURCES)
 list: $(SOURCES)
 	frama-c -load-module top/fpan -plugins
 
-help: $(SOURCES)
+fc-help: $(SOURCES)
 	frama-c -load-module top/fpan -fpan-help
 
 fpan: $(SOURCES)
@@ -26,7 +30,6 @@ verbose: $(SOURCES)
 	frama-c -load-module top/fpan -fpan -fpan-verbose 2
 
 test: $(SOURCES) tests/fpan/add.c
-	make
 	frama-c -load-module top/fpan -fpan -fpan-verbose 2 tests/fpan/add.c
 
 eva: tests/fpan/square.c
@@ -43,3 +46,6 @@ wp: tests/fpan/square.c tests/fpan/square_ptr.c tests/fpan/sterbenz.c
 
 gappa: tests/gappa/square.g
 	gappa -Bcoq tests/gappa/square.g > square.v
+
+clean:
+	$(RM) *.o *.cmo *.cmi *.cmt *.cmti *.cmx *.check_mli_exists META.frama-c-fpan top/*
