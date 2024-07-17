@@ -19,4 +19,9 @@ META.*
 *.o
 top/
 .merlin
+ptests_config
 
+# Coq
+*.vos
+*.vok
+*.glob
