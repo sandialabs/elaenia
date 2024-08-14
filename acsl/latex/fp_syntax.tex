@@ -1,0 +1,48 @@
+\section{Introduction}\label{sec:fpintro}
+
+The goal of this is to put forth a draft document so we can agree on a
+syntax and semantics for floating-point in ACSL. The goals of this
+syntax should be, in decreasing priority:
+
+\begin{enumerate}
+\item Support specification of compositional floating-point error analysis
+\item Be as simple as possible
+\item Allow straightforward translation to floating-point automated reasoning tools
+\item Be as similar as possible to existing FP syntax in ACSL
+\end{enumerate}
+
+This is based on Section 2.2.5 of the Frama-C ACSL Implementation,
+version 1.20 (Implementation in Frama-C version 29.0).
+
+
+\section{Features}
+
+Versus the current ACSL, we recommend four main new features:
+
+\begin{enumerate}
+
+\item \lstinline|real numerics| and \lstinline|floating numerics| to have local syntax, as opposed to a global description via \verb|-wp-model +real| or \verb|-wp-model +float|.
+
+\item \verb|\uncertainty| predicate. This allows to model sources of error external to Frama-C; i.e., from physical phenomena or other analysis from external tools. For example,
+
+    \begin{listing-nonumber}
+    /*@ requires 0.0 <= x <= 1000.0;
+        requires \uncertainty(x,-5.0,5.0); */
+    \end{listing-nonumber}
+
+\item \lstinline|lower < x < upper| implies \lstinline|\is_finite(x)|, to simplify specifications.
+\item \lstinline|\ulp(x)| to represent the unit in the last place. There are multiple definitions of $\ulp$~\cite{muller:2005:ulp}, with slightly different properties between each of them~\cite{muller:2018:handbook}; we use the one chosen by ReFlow:
+
+      % logic real ulp_dp(real x) =
+      % (x == 0) ? \pow(BASE, (\emin_dp - p_dp + 1))
+      % : \pow(BASE, (\max(\floor(\log(\abs(x))/\log(2)), \emin_dp) - p_dp + 1));`
+    \[
+        \ulp(x) = \begin{cases}
+            2^{\emin - p + 1}                          & \text{ if } x = 0 \\
+            2^{\max(\lfloor \log_2(|x|)\rfloor, \emin) - p + 1} & \text{ otherwise}
+        \end{cases}
+    \]
+    where $p$, $\emin$ depend on the floating-point precision. For single precision, $\emin = -126$, $p = 24$. For double precision, $\emin = -1022$ and $p = 53$.
+
+\end{enumerate}
+

@@ -25,3 +25,18 @@ ptests_config
 *.vos
 *.vok
 *.glob
+
+# LaTeX
+*.aux
+*.bbl
+*.blg
+*.cb
+*.cb2
+*.fdb_latexmk
+*.fls
+*.idx
+*.ilg
+*.ind
+*.log
+*.out
+*-eps-converted-to.pdf

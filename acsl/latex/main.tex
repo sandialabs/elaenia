@@ -1,0 +1,75 @@
+\documentclass{frama-c-book}
+
+\input{common}
+
+\newcommand{\acslversion}{$\alpha$}
+
+\title{
+  ANSI/ISO \lang Specification Language:\\\smallskip
+  Floating-Point Draft Syntax\\\smallskip
+  Version \acslversion
+}
+
+% \subtitle{Floating-point Proposal}
+
+\iftoggle{isCPP}{
+  \author{David R. Cok}
+}
+{
+  \author{
+	\mbox{Samuel D. Pollard},
+	\mbox{Laura Titolo},
+	\mbox{Mariano Moscato},
+	\mbox{Maxime Jacquemin}
+  }
+}
+
+\cclicence{by}
+
+\addcopyrightowner{Sandia National Laboratories}
+\addcopyrightowner{NASA}
+\copyrightstarts{2024}
+
+\addlogo{logos/SNL_Stacked_BlueBlack.eps}
+\addlogo{logos/NASA_logo.eps}
+
+\begin{document}
+\sloppy
+\emergencystretch 3em
+
+\maketitle
+
+%\chapter{Floating-Point Syntax}\label{ch:fp_syntax}
+\include{fp_syntax}
+
+\appendix
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{\bibname}
+\bibliographystyle{plain}
+%\IfFileExists{biblio-demons.tex}{%
+%\input{biblio-demons.tex}
+%}{
+\bibliography{./biblio}
+%}
+
+% \cleardoublepage
+% \phantomsection
+% \addcontentsline{toc}{chapter}{\listfigurename}
+% \listoffigures
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{\indexname}
+\printindex
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-PDF-mode: t
+%%% TeX-master: t
+%%% ispell-local-dictionary: "english"
+%%% End:
+
