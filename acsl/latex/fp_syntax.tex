@@ -38,7 +38,7 @@ Versus the current ACSL, we recommend four main new features:
       % : \pow(BASE, (\max(\floor(\log(\abs(x))/\log(2)), \emin_dp) - p_dp + 1));`
     \[
         \ulp(x) = \begin{cases}
-            2^{\emin - p + 1}                          & \text{ if } x = 0 \\
+            2^{\emin - p + 1}                                   & \text{ if } x = 0 \\
             2^{\max(\lfloor \log_2(|x|)\rfloor, \emin) - p + 1} & \text{ otherwise}
         \end{cases}
     \]
