@@ -17,6 +17,7 @@ version={4.0}]
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{enumitem}
+\newcommand{\itembf}{\item[\stepcounter{enumi}\textbf{\arabic{enumi}.}]}
 %\usepackage{tikz}
 \usepackage{color}
 \usepackage{xspace}
@@ -27,6 +28,8 @@ version={4.0}]
 \usepackage{hyperref}
 \usepackage{multirow}
 \usepackage{fixme}
+% For reports, use disable to remove all todonotes
+\usepackage[textsize=footnotesize, bordercolor=orange, backgroundcolor=none]{todonotes}
 
 \lstset{
 numbers=left,

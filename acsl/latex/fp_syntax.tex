@@ -5,30 +5,33 @@ syntax and semantics for floating-point in ACSL. The goals of this
 syntax should be, in decreasing priority:
 
 \begin{enumerate}
-\item Support specification of compositional floating-point error analysis
-\item Be as simple as possible
-\item Allow straightforward translation to floating-point automated reasoning tools
-\item Be as similar as possible to existing FP syntax in ACSL
+	\item Support specification of compositional floating-point error analysis
+	\item Be as simple as possible
+	\item Allow straightforward translation to multiple floating-point automated reasoning tools
+	\item Be as similar as possible to existing FP syntax in ACSL
 \end{enumerate}
 
-This is based on Section 2.2.5 of the Frama-C ACSL Implementation,
-version 1.20 (Implementation in Frama-C version 29.0).
-
+The proposed syntax and semantics is based on Section 2.2.5 of the Frama-C ACSL
+Implementation, version 1.20 (Implementation in Frama-C version 29.0).
 
 \section{Features}
 
-Versus the current ACSL, we recommend four main new features:
+To support floating-point analysis in ACSL, we recommend five main features. These are in decreasing order of priority, where the first two are necessary for compositional floating-point error analysis while the others improve usability and compatibility.
 
 \begin{enumerate}
 
-\item \lstinline|real numerics| and \lstinline|floating numerics| to have local syntax, as opposed to a global description via \verb|-wp-model +real| or \verb|-wp-model +float|.
+\itembf \lstinline|\round_error| predicate. This is mentioned in the Frama-C ACSL implementation~\cite[\S.~2.2.5]{cea:2024:acsl}, but has limited support in the WP plug-in.
 
-\item \verb|\uncertainty| predicate. This allows to model sources of error external to Frama-C; i.e., from physical phenomena or other analysis from external tools. For example,
+\itembf \verb|\uncertainty| predicate. This allows to model sources of error external to Frama-C; i.e., from physical phenomena or other analysis from external tools. For example,
 
     \begin{listing-nonumber}
     /*@ requires 0.0 <= x <= 1000.0;
         requires \uncertainty(x,-5.0,5.0); */
     \end{listing-nonumber}
+
+\item
+\lstinline|real numerics| and \lstinline|floating numerics| to have local syntax, as opposed to a global description via \verb|-wp-model +real| or \verb|-wp-model +float|.
+\todo{SP: The Frama-C source I looked it made it seem like this was possible since the WP model was often looked up per-function - could this apply per-block of ACSL easily?}
 
 \item \lstinline|lower < x < upper| implies \lstinline|\is_finite(x)|, to simplify specifications.
 \item \lstinline|\ulp(x)| to represent the unit in the last place. There are multiple definitions of $\ulp$~\cite{muller:2005:ulp}, with slightly different properties between each of them~\cite{muller:2018:handbook}; we use the one chosen by ReFlow:
@@ -42,7 +45,19 @@ Versus the current ACSL, we recommend four main new features:
             2^{\max(\lfloor \log_2(|x|)\rfloor, \emin) - p + 1} & \text{ otherwise}
         \end{cases}
     \]
-    where $p$, $\emin$ depend on the floating-point precision. For single precision, $\emin = -126$, $p = 24$. For double precision, $\emin = -1022$ and $p = 53$.
+    where $p$, $\emin$ depend on the floating-point precision.
+	For single precision, $\emin = -126$, $p = 24$.
+	For double precision, $\emin = -1022$ and $p = 53$.
+	\todo{SP: Do we even want to define ulp, or leave it implementation defined?}
 
 \end{enumerate}
 
+\section{Implementation}
+
+This section describes considerations for how these features could be implemented.
+
+\begin{itemize}
+	\item Modify existing Why3 drivers with ReFlow~\cite{ferreira:2023:reflow} to work more easily with Frama-C.
+	\item Translating from PVS to a common ACSL syntax.
+	\item Translating from the common ACSL syntax to PVS: this should be relatively easily accomplished using the existing Why3 drivers for ReFlow.
+\end{itemize}
