@@ -1,0 +1,22 @@
+Variables
+  t in [-35, 80]; //temperature
+  b0 in [-1,1];
+  b1 in [-1e-4, 1e-4];
+  b2 in [-1e-6, 1e-6];
+  b3 in [-1e-9, 1e-9];
+  b4 in [-1e-12, 1e-12];
+  b5 in [-1e-13, 1e-13];
+  s0 in [0.9,1.1];
+  s1 in [-1e-4, 1e-4];
+  s2 in [-1e-6, 1e-6];
+  s3 in [-1e-9, 1e-9];
+  ain in [-256, 256];
+
+Expressions
+  t2 rnd= t*t;
+  t3 rnd= t2*t;
+  t4 rnd= t2*t2;
+  t5 rnd= t3*t2;
+  b rnd= b0 + t*b1 + t2*b2 + t3*b3 + t4*b4 + t5*b5;
+  s rnd= s0 + t*s1 + t2*s2 + t3*s3;
+  acomp rnd= (ain - b)/s;
