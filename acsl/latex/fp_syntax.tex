@@ -1,8 +1,6 @@
 \section{Introduction}\label{sec:fpintro}
 
-The goal of this is to put forth a draft document so we can agree on a
-syntax and semantics for floating-point in ACSL. The goals of this
-syntax should be, in decreasing priority:
+The goal of this is to put forth a draft document to agree on a syntax and semantics for floating point in ACSL. The goals of this syntax should be, in decreasing priority:
 
 \begin{enumerate}
 	\item Support specification of compositional floating-point error analysis
@@ -12,15 +10,14 @@ syntax should be, in decreasing priority:
 \end{enumerate}
 
 The proposed syntax and semantics is based on Section 2.2.5 of the Frama-C ACSL
-Implementation, version 1.20 (Implementation in Frama-C version 29.0).
+Implementation, version 1.20 (Implementation in Frama-C version 29.0)~\cite{cea:2024:acsl}.
 
-\section{Features}
+\section{ACSL Extensions}
 
-To support floating-point analysis in ACSL, we recommend five main features. These are in decreasing order of priority, where the first two are necessary for compositional floating-point error analysis while the others improve usability and compatibility.
+To support floating-point analysis in ACSL, we recommend four language extensions. These are listed in decreasing order of priority, where the first one is necessary for compositional floating-point error analysis while the others improve usability and compatibility.
+
 
 \begin{enumerate}
-
-\itembf \lstinline|\round_error| predicate. This is mentioned in the Frama-C ACSL implementation~\cite[\S.~2.2.5]{cea:2024:acsl}, but has limited support in the WP plug-in.
 
 \itembf \verb|\uncertainty| predicate. This allows to model sources of error external to Frama-C; i.e., from physical phenomena or other analysis from external tools. For example,
 
@@ -31,10 +28,10 @@ To support floating-point analysis in ACSL, we recommend five main features. The
 
 \item
 \lstinline|real numerics| and \lstinline|floating numerics| to have local syntax, as opposed to a global description via \verb|-wp-model +real| or \verb|-wp-model +float|.
-\todo{SP: The Frama-C source I looked it made it seem like this was possible since the WP model was often looked up per-function - could this apply per-block of ACSL easily?}
+%\todo{SP: The Frama-C source I looked it made it seem like this was possible since the WP model was often looked up per-function - could this apply per-block of ACSL easily?}
 
 \item \lstinline|lower < x < upper| implies \lstinline|\is_finite(x)|, to simplify specifications.
-\item \lstinline|\ulp(x)| to represent the unit in the last place. There are multiple definitions of $\ulp$~\cite{muller:2005:ulp}, with slightly different properties between each of them~\cite{muller:2018:handbook}; we use the one chosen by ReFlow:
+\item \lstinline|\ulp(x)| to represent the unit in the last place. There are multiple definitions of $\ulp$~\cite{muller:2005:ulp}, with slightly different properties between each of them~\cite{muller:2018:handbook}; we propose using the one chosen by ReFlow:
 
       % logic real ulp_dp(real x) =
       % (x == 0) ? \pow(BASE, (\emin_dp - p_dp + 1))
@@ -52,12 +49,34 @@ To support floating-point analysis in ACSL, we recommend five main features. The
 
 \end{enumerate}
 
-\section{Implementation}
+\section{Improving Support for Existing ACSL Features}
 
-This section describes considerations for how these features could be implemented.
+While Frama-C generates WhyML provided a specification, the support for back-end provers can often be limited. In particular, the following floating point features may not be supported, or have limited usability. We propose either documenting existing limitations, or improving solver support for the following:
 
-\begin{itemize}
-	\item Modify existing Why3 drivers with ReFlow~\cite{ferreira:2023:reflow} to work more easily with Frama-C.
-	\item Translating from PVS to a common ACSL syntax.
-	\item Translating from the common ACSL syntax to PVS: this should be relatively easily accomplished using the existing Why3 drivers for ReFlow.
-\end{itemize}
+\clearpage
+
+\begin{listing-nonumber}
+/*@
+type rounding_mode = \Up | \Down | \ToZero | \NearestAway | \NearestEven;
+logic float \round_float(rounding_mode m, real x);
+logic double \round_double(rounding_mode m, real x);
+logic real \exact(double x);
+logic real \exact(float x);
+logic real \round_error(float x);
+logic real \round_error(double x);
+*/
+\end{listing-nonumber}
+
+The following solvers show the most promise for improving such support: \todo{Determine which provers}.
+
+
+% \section{Implementation}
+% 
+% This section describes considerations for how these features could be implemented.
+% 
+% \begin{itemize}
+% 	\item Modify existing Why3 drivers with ReFlow~\cite{ferreira:2023:reflow} to work more easily with Frama-C.
+% 	\item Translating from PVS to a common ACSL syntax.
+% 	\item Translating from the common ACSL syntax to PVS: this should be relatively easily accomplished using the existing Why3 drivers for ReFlow.
+% \end{itemize}
+% 
