@@ -1,10 +1,9 @@
-# Nerif: Automated Error Analysis of Numerical Software for High-Consequence Systems
+# Elaenia: Automated Error Analysis of Numerical Software for High-Consequence Systems
 
-This work is funded by Sandia National Laboratories' Laboratory
-Directed Research & Development (LDRD) program, project 24-1299:
-"Automated Error Analysis of Numerical Kernels for High-Consequence
-Systems with Frama-C" and project 25-0103: "Automated Error Analysis of
-Numerical Software for High-Consequence Systems."
+This repository provides tools and techniques for automated
+floating-point error analysis of C programs with the goal of making it
+easier to specify and verify behavior of numerics-heavy C programs, with
+a focus on embedded systems.
 
 ## Structure of this Repository
 
@@ -27,8 +26,18 @@ maintained as a fork for [ReFlow](https://github.com/nasa/reflow).
 
 ## About
 
-Nerif is the name of a playable character (Oracle) in the computer game
-Dota 2.  Without stretching an analogy too much, Nerif floats and keeps
-you safe.  Likewise, this project is about keeping you safe while using
-floating point.
+This work is funded by Sandia National Laboratories' Laboratory
+Directed Research & Development (LDRD) program, project 24-1299:
+"Automated Error Analysis of Numerical Kernels for High-Consequence
+Systems with Frama-C" and project 25-0103: "Automated Error Analysis of
+Numerical Software for High-Consequence Systems."
 
+
+Sandia National Laboratories is a multimission laboratory managed and
+operated by National Technology and Engineering Solutions of Sandia,
+LLC., a wholly owned subsidiary of Honeywell International, Inc., for
+the U.S. Department of Energy’s National Nuclear Security Administration
+under contract DE-NA-0003525.
+
+The name Elaenia is taken from the name of an album by a band called
+Floating Points. It is also a kind of bird.
