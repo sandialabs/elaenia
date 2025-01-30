@@ -1,5 +1,3 @@
-/* Trying to use the gappa backend for interval arithmetic */
-
 /*@ requires \is_finite(x);
     requires 0.0 <= x && x <= 100.0;
     assigns \nothing;
