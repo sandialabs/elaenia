@@ -1,6 +1,8 @@
 # It seems this has no effect: -wp-model +float
 
-# May want a larger wp-steps (I've seen 1500 in test cases) # -wp-steps 1500
+# May want a larger wp-steps ("A machine-independent alternative to timeout",
+# I've seen 1500 in test cases)
+# -wp-steps 1500
 WP = -wp -wp-rte
 
 DEBUG =
@@ -11,12 +13,15 @@ GEN_WHYML ?= -wp-gen -wp-prover why3 -wp-msg-key="print-generated"
 
 WP_PROVERS = alt-ergo,gappa,colibri2,z3
 
-all: twice sqroot temp nmse333 determinant sin
+all: twice sqroot sqroot_2nd temp nmse333 determinant sin
 
-.PHONY: twice sqroot temp nmse333 determinant sin
+.PHONY: twice sqroot sqroot_2nd temp nmse333 determinant sin
 
 # Listed in order of increasing complexity
 twice: twice.c
+	frama-c $(WP) -wp-model +float -wp-prover $(WP_PROVERS) $(GEN_WHYML) $(DEBUG) -wp-fct $@ $^
+
+sqroot_2nd: sqroot_2nd.c
 	frama-c $(WP) -wp-model +float -wp-prover $(WP_PROVERS) $(GEN_WHYML) $(DEBUG) -wp-fct $@ $^
 
 sqroot: sqroot.c

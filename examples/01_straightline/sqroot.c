@@ -8,7 +8,7 @@
   requires \is_finite(x);
   //ensures 0.0 <= \result <= 1.0625;
   //ensures -1.0 <= \result <= 2.0;
-  ensures 0.335938 <= \results <= 1.0625;
+  ensures 0.335938 <= \result <= 1.0625;
   assigns \nothing;
  */
 double sqroot(double x)
