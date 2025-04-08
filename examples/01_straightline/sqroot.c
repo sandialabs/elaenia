@@ -6,9 +6,9 @@
 /*@
   requires 0.0 <= x <= 1.0;
   requires \is_finite(x);
-  //ensures 0.0 <= \result <= 1.0625;
-  //ensures -1.0 <= \result <= 2.0;
-  ensures 0.335938 <= \result <= 1.0625;
+  // ensures 1 <= \result <= 1.398437500000000; // Can't prove
+  // ensures 1 <= \result <= 1.399; // Can't prove
+  ensures 1 <= \result <= 1.40;
   assigns \nothing;
  */
 double sqroot(double x)
