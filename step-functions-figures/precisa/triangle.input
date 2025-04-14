@@ -1,0 +1,3 @@
+triangle(A,B,C): A in [1,1.2], 
+                 B in [1,1.2], 
+                 C in [0.5,1]

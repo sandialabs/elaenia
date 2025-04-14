@@ -1,0 +1,10 @@
+branch: THEORY 
+BEGIN 
+IMPORTING float@aerr754dp
+
+    branch (X: double) : double =
+        IF (X < 6.5)
+        THEN (X * 3.6)
+        ELSE (X - 8.67)
+        ENDIF
+END branch

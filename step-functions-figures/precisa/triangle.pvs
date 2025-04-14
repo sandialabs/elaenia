@@ -1,0 +1,9 @@
+triangle: THEORY
+BEGIN
+IMPORTING float@aerr754dp
+
+    triangle (A: double, B: double, C: double) : double =
+    LET S = (A + B + C) / 2 IN
+    sqrt(S * (S - A) * (S - B) * (S - C))
+
+END triangle
