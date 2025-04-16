@@ -1,0 +1,5 @@
+(executable
+ (public_name analyzer)
+ (name main)
+ (libraries round goblint-cil))
+
