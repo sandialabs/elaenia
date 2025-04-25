@@ -31,5 +31,4 @@ int main()
 {
 	double r = rsqrt(99.0); // 0.1005037815
 	printf("1/sqrt = %.8f\n", r);
-	nri(1.0);
 }
