@@ -1,6 +1,5 @@
 # Editor temporaries
-.*.swp
-.*.swo
+.*.sw[o-p]
 *~
 
 # Mac
@@ -22,6 +21,7 @@ top/
 ptests_config
 
 # Coq
+*.vo
 *.vos
 *.vok
 *.glob

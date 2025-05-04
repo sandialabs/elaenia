@@ -18,8 +18,17 @@ all: twice sqroot sqroot_2nd temp nmse333 determinant sin
 .PHONY: twice sqroot sqroot_2nd temp nmse333 determinant sin
 
 # Listed in order of increasing complexity
+twice.v: twice.c
+	clightgen -normalize $<
+
+twice.vo: twice.v
+	coqc $<
+
 twice: twice.c
 	frama-c $(WP) -wp-model +float -wp-prover $(WP_PROVERS) $(GEN_WHYML) $(DEBUG) -wp-fct $@ $^
+
+twice_verif: twice.vo twice.c
+	@echo "TODO"
 
 sqroot_2nd: sqroot_2nd.c
 	frama-c $(WP) -wp-model +float -wp-prover $(WP_PROVERS) $(GEN_WHYML) $(DEBUG) -wp-fct $@ $^
@@ -47,3 +56,5 @@ doppler1: 01_06_doppler1.c
 sin: 01_05_sin.c
 	@echo "todo"
 
+clean:
+	$(RM) *.vo *.vos *.vok *.glob

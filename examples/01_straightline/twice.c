@@ -8,3 +8,10 @@ double twice(double x)
 {
   return 2.0 * x;
 }
+
+int main(void)
+{
+    double result = twice(42.0);
+    return 0;
+}
+
