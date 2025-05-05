@@ -27,8 +27,8 @@ twice.vo: twice.v
 twice: twice.c
 	frama-c $(WP) -wp-model +float -wp-prover $(WP_PROVERS) $(GEN_WHYML) $(DEBUG) -wp-fct $@ $^
 
-twice_verif: twice.vo twice.c
-	@echo "TODO"
+twice_verif.vo: twice.vo twice.c
+	coqc twice_verif.v
 
 sqroot_2nd: sqroot_2nd.c
 	frama-c $(WP) -wp-model +float -wp-prover $(WP_PROVERS) $(GEN_WHYML) $(DEBUG) -wp-fct $@ $^

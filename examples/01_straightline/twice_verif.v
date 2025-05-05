@@ -11,7 +11,7 @@ Local Open Scope float64_scope.
 
 (* If you don't open the scope, you have to do things like
   Float.of_int (Int.repr 2) *)
-Definition Twice (x : ftype Tdouble) : ftype Tdouble := Float.mul 2 x.
+Definition Twice (x : ftype Tdouble) : ftype Tdouble := Float.mul 2.0 x.
 
 Definition twice_spec :=
  DECLARE _twice
@@ -32,7 +32,14 @@ Lemma body_twice: semax_body Vprog Gprog f_twice twice_spec.
 Proof.
 start_function.
 forward.
-Admitted.
+(* I got this far on my own...
+   thanks to Shant for figuring out the rest of this *)
+apply prop_right_emp.
+unfold Twice.
+do 2 f_equal.
+vm_compute.
+apply B754_finite_ext.  
+Qed.
 
 Lemma body_main: semax_body Vprog Gprog f_main main_spec.
 Proof.
