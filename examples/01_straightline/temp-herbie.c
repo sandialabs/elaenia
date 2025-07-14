@@ -32,7 +32,7 @@ double temp_alt2(double t,
 	return (ain - ((t * (b1 + (t * (b2 + (t * (b3 + (b4 * t))))))) + b0)) / ((s1 * t) + s0);
 }
 
-/* Alt 7: 99.4% accurate, 5.6x speedup */
+/* Alt 6: 67.2% accurate, 5.5x speedup */
 double temp_ite(double t,
 		double b0, double b1, double b2, double b3, double b4, double b5,
 		double s0, double s1, double s2, double s3,
