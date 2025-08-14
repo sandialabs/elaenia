@@ -1,0 +1,18 @@
+// Error correcting code example in WebPPL
+// Can run by pasting in to http://webppl.org
+var geometric = function() {
+  return flip(.5) ? 0 : geometric() + 1;
+}
+
+var model = function() {
+  var max_errors = 3;
+  var nrm = gaussian(0, 1);
+  var g = geometric();
+  return (g + (nrm > 2)) > max_errors;
+
+};
+
+var dist = Infer({method: 'MCMC', samples: 5000000, burn: 2000}, model)
+
+print(dist);
+viz.auto(dist);

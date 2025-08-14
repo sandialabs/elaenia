@@ -19,6 +19,7 @@ META.*
 top/
 .merlin
 ptests_config
+_build
 
 # Coq
 *.vo
