@@ -49,6 +49,12 @@ maintained as a fork for [ReFlow](https://github.com/nasa/reflow).
   Practice (DAHCS MiCoP). It is recorded on
   [YouTube](https://www.youtube.com/watch?v=8tCcfR5COHc)
 
+## License
+
+This repository is licensed under the LGPLv3 (see LICENSE), with the
+exception of `examples/04_matrices/matrix-int/matmul.c`, is licensed
+under CC-BY.
+
 ## About
 
 This work is funded by Sandia National Laboratories' Laboratory
