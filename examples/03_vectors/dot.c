@@ -31,10 +31,63 @@ float dot(Vector x, Vector y) {
 	return acc;
 }
 
+/*@ requires valid_read_Vector(x);
+  @ requires valid_read_Vector(y);
+  @ requires x.n == y.n;
+  @ assigns \nothing;
+ */
+float dot_unroll(Vector x, Vector y) {
+	int i;
+	double acc = 0.0;
+	/*@ loop invariant 0 <= i <= x.n;
+	  @ loop assigns acc;
+	  @ loop assigns i;
+	  @ loop variant x.n-i;
+	*/
+	for (i = 0; i < x.n-4; i += 4) {
+		acc += x.v[i+0] * y.v[i+0];
+		acc += x.v[i+1] * y.v[i+1];
+		acc += x.v[i+2] * y.v[i+2];
+		acc += x.v[i+3] * y.v[i+3];
+	}
+	// Fill out the non-multiples of 4
+	for (; i < x.n; i++) {
+		acc += x.v[i] * y.v[i];
+	}
+	return acc;
+}
+
+// Different associativity
+/*@ requires valid_read_Vector(x);
+  @ requires valid_read_Vector(y);
+  @ requires x.n == y.n;
+  @ assigns \nothing;
+ */
+float dot_reassociate(Vector x, Vector y) {
+	int i;
+	double acc = 0.0;
+	/*@ loop invariant 0 <= i <= x.n;
+	  @ loop assigns acc;
+	  @ loop assigns i;
+	  @ loop variant x.n-i;
+	*/
+	for (i = 0; i < x.n-4; i += 4) {
+		acc += ((x.v[i+0] * y.v[i+0]) +
+                 x.v[i+1] * y.v[i+1]) +
+		        (x.v[i+2] * y.v[i+2] +
+		         x.v[i+3] * y.v[i+3]);
+	}
+	// Fill out the non-multiples of 4
+	for (; i < x.n; i++) {
+		acc += x.v[i] * y.v[i];
+	}
+	return acc;
+}
+
 
 /*@ assigns \nothing;
  */
-int dot2()
+int dot_frama_c_check()
 {
 	int X[4] = {0, 1, 2, 3};
 	int Y[4] = {0, 1, 2, 3};
