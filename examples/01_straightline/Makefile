@@ -4,6 +4,8 @@
 # I've seen 1500 in test cases)
 # -wp-steps 1500
 WP = -wp -wp-rte
+# C pre-processor
+CPP = cpp-14
 
 # Not necessary if using linux, I think
 INCLUDES := /opt/homebrew/include
@@ -40,6 +42,14 @@ sqroot_2nd: sqroot_2nd.c
 sqroot: sqroot.c
 	frama-c $(WP) -wp-model +float -wp-prover $(WP_PROVERS) $(GEN_WHYML) $(DEBUG) -wp-fct $@ $^
 
+# Weirdly enough, pvs -batch appears to require you have emacs up and running...
+attr: attr.c attr.pvs attr.input
+	$(CPP) -fpreprocessed attr.pvs $@.i 
+	precisa attr.pvs attr.input
+	pvs -batch attr_cert.pvs
+	pvs -batch attr_num_cert.pvs
+	pvs -batch attr_real.pvs
+
 temp: temp-fc temp-fptaylor temp-herbie temp-herbie.csv run-temp
 temp-fc: temp.c
 	frama-c $(WP) -wp-model +float -wp-prover $(WP_PROVERS) $(GEN_WHYML) $(DEBUG) -wp-fct temp temp.c
@@ -73,4 +83,4 @@ sin: 01_05_sin.c
 	@echo "todo"
 
 clean:
-	$(RM) *.vo *.vos *.vok *.glob
+	$(RM) *.vo *.vos *.vok *.glob attr.i *_cert.pvs *_num_cert.pvs *_real.pvs temp-herbie

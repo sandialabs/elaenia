@@ -1,0 +1,11 @@
+attr: THEORY
+BEGIN
+IMPORTING float@ieee754_double
+
+% @fp-function
+attr (X: double):double =
+    (((1.0 + (0.5 * X)) - ((0.125 * X) * X)) + (((0.0625 * X) * X) * X))
+    - ((((0.0390625 * X) * X) * X) * X)
+
+END attr
+
