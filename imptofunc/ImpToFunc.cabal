@@ -1,0 +1,83 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.38.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           ImpToFunc
+version:        0.1.0.0
+synopsis:       Translation of an imperative language to a functional language
+description:    Please see the README on GitHub at <https://github.com/sandialabs/elaenia/#readme>
+category:       Formal Methods
+homepage:       https://github.com/sandialabs/elaenia#readme
+bug-reports:    https://github.com/sandialabs/elaenia/issues
+author:         Shant Hairapetian and Sam Pollard
+maintainer:     spolla@sandia.gov
+copyright:      2026 Sandia National Laboratories
+license:        LGPL-3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/sandialabs/elaenia
+
+library
+  exposed-modules:
+      Func.AST
+      Func.Interpreter
+      Func.Parser
+      Func.PrettyPrinter
+      Func.TypeChecker
+      Imp.AST
+      Imp.Interpreter
+      Imp.Parser
+      Imp.TypeChecker
+      Lib
+      Translation.ReachabilityAnalysis
+      Translation.Translator
+  other-modules:
+      Paths_ImpToFunc
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , filepath
+    , mtl
+    , parsec
+    , sbv
+  default-language: Haskell2010
+
+executable ImpToFunc-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_ImpToFunc
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      ImpToFunc
+    , base >=4.7 && <5
+    , containers
+    , filepath
+    , mtl
+    , parsec
+    , sbv
+  default-language: Haskell2010
+
+test-suite ImpToFunc-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_ImpToFunc
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      ImpToFunc
+    , base >=4.7 && <5
+  default-language: Haskell2010

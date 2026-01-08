@@ -1,0 +1,66 @@
+name:                ImpToFunc
+version:             0.1.0.0
+github:              "sandialabs/elaenia"
+license:             LGPL-3
+author:              "Shant Hairapetian and Sam Pollard"
+maintainer:          "spolla@sandia.gov"
+copyright:           "2026 Sandia National Laboratories"
+
+extra-source-files:
+- README.md
+
+# Metadata used when publishing your package
+synopsis:            Translation of an imperative language to a functional language
+category:            Formal Methods
+description:         Please see the README on GitHub at <https://github.com/sandialabs/elaenia/#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+
+ghc-options:
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+
+library:
+  source-dirs: src
+  dependencies:
+    - parsec
+    - containers
+    - filepath
+    - mtl
+    - sbv
+
+
+executables:
+  ImpToFunc-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - ImpToFunc
+    - parsec
+    - containers
+    - filepath
+    - mtl
+    - sbv
+
+tests:
+  ImpToFunc-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - ImpToFunc

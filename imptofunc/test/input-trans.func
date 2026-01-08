@@ -1,0 +1,6 @@
+empty (x:string): maybe int = Nothing;
+addMap (x:string) (y:int) (map:(string -> maybe int)): (string -> maybe int) = (fun (z:string): maybe int -> if (x==z) then Just(y) else map(z));
+getEnv (x:string) (map:(string -> maybe int)): int = if (map(x)==Nothing) then -1 else (fromMaybe(map(x)));
+env (x:string): maybe int = let map = addMap("z",1,empty) in map(x);
+mutateZ (env:(string -> maybe int)) (foo:int): (int,(string -> maybe int)) = let env = addMap("z",foo,env) in (1,env);
+main : int = let env = snd(mutateZ(env,4)) in getEnv("z",env);

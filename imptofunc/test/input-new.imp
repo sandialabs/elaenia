@@ -1,0 +1,11 @@
+int z = 1;
+
+function mutateZ(foo:int):int={
+  z = foo;
+  return 1;
+};
+
+function main():int={
+  mutateZ(4);
+  return z;
+};

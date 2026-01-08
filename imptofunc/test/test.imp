@@ -1,0 +1,29 @@
+function main():int={
+  a=2;
+  a=3;
+  if(true){
+  u=1;
+  z=1;
+  return 1;
+  }else{
+    z=2;
+  };
+  z=3;
+  z=5;
+  z=6;
+  return 2;
+};
+
+[
+  Ass () "a" (EInt () 2),
+  Ass () "a" (EInt () 3),
+  If () (EBool () True) 
+    [Ass () "u" (EInt () 1),
+     Ass () "z" (EInt () 1),
+     Return () (EInt () 1)] 
+    [Ass () "z" (EInt () 2)],
+  Ass () "z" (EInt () 3),
+  Ass () "z" (EInt () 5),
+  Ass () "z" (EInt () 6),
+  Return () (EInt () 2)
+]

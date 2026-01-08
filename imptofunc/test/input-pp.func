@@ -1,0 +1,13 @@
+hello (a:int) (b:int) (c:bool): (int -> int -> int) = let x = 1 in  let z = x in  (fun (a:int) (b:int): int -> 1);
+hellz (a:int) (b:int) (c:bool): int = 1;
+abc : int = (1+((2*(8))));
+y : (int,int) = (1,2);
+takes (x:(int -> int -> int)): int = x(1,1);
+empty (x:string): maybe int = Nothing;
+addMap (x:string) (y:int) (map:(string -> maybe int)): (string -> maybe int) = (fun (z:string): maybe int -> if ((x==(z))) then Just(y) else map(z));
+yikes : string = "asdasdasda";
+is : maybe int = Just(1);
+xx : maybe int = Nothing;
+yyy : int = 3;
+zzz : int = let x = hello(1,2,true) in  x(1,2);
+main : maybe int = Just(1);

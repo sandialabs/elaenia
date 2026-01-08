@@ -41,3 +41,6 @@ _build
 *.log
 *.out
 *-eps-converted-to.pdf
+
+# Haskell
+.stack-work

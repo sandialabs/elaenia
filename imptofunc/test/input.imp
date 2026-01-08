@@ -1,0 +1,17 @@
+int z = 1;
+
+function branch(lol:bool,foo:int):bool={
+  
+  if((lol==true)){
+    z = 2;
+    return true;
+  }else{
+    z = 3;
+  };
+  return false;
+};
+
+function main():int={
+  branch(true,1);
+  return z;
+};
