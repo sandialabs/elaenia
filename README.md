@@ -42,6 +42,11 @@ maintained as a fork for [ReFlow](https://github.com/nasa/reflow).
   for [Roulette](https://dl.acm.org/doi/abs/10.1145/3729334).
   (Technical report to appear).
 
+- `imptofunc` - A starting point for a translation from an imperative
+  language for numerics and translating it into a language amenable for
+  formal specification (such as PVS/PRECiSA). This is the precursor to an
+  upcoming compiler `fpcc`.
+
 ## Further Reading
 
 - I gave a talk which is an overview of this project to the Digital
