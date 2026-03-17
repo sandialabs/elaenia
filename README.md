@@ -42,6 +42,9 @@ maintained as a fork for [ReFlow](https://github.com/nasa/reflow).
   for [Roulette](https://dl.acm.org/doi/abs/10.1145/3729334).
   (Technical report to appear).
 
+- `polnomial-semiring-roulette`. A patch for polynomial semiring
+  implementation in Roulette and its underlying inference engine RSDD.
+
 - `imptofunc` - A starting point for a translation from an imperative
   language for numerics and translating it into a language amenable for
   formal specification (such as PVS/PRECiSA). This is the precursor to an
@@ -54,11 +57,13 @@ maintained as a fork for [ReFlow](https://github.com/nasa/reflow).
   Practice (DAHCS MiCoP). It is recorded on
   [YouTube](https://www.youtube.com/watch?v=8tCcfR5COHc)
 
-## License
+## Licenses
 
 This repository is licensed under the LGPLv3 (see LICENSE), with the
-exception of `examples/04_matrices/matrix-int/matmul.c`, is licensed
-under CC-BY.
+exceptions of `examples/04_matrices/matrix-int/matmul.c`, is licensed
+under CC-BY, and the `polnomial-semiring-roulette` directory, which are
+licensed under the MIT and Apache licenses (labeled in their respective
+files).
 
 ## About
 

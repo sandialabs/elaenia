@@ -5,7 +5,7 @@
 # -wp-steps 1500
 WP = -wp -wp-rte
 # C pre-processor
-CPP = cpp-14
+CPP = cpp-15
 
 # Not necessary if using linux, I think
 INCLUDES := /opt/homebrew/include

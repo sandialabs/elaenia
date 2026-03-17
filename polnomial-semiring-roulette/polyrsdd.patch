@@ -1,0 +1,1321 @@
+# Semiring implementation in RSDD
+# Author: Jon Aytac, Sandia National Laboratories
+# Distributed under the MIT License
+diff --git a/src/builder/decision_nnf/semantic.rs b/src/builder/decision_nnf/semantic.rs
+index 7d051e6..61f2f54 100644
+--- a/src/builder/decision_nnf/semantic.rs
++++ b/src/builder/decision_nnf/semantic.rs
+@@ -75,7 +75,7 @@ impl<'a, const P: u128> SemanticDecisionNNFBuilder<'a, P> {
+         }
+     }
+ 
+-    fn check_cached_hash_and_neg(&self, semantic_hash: FiniteField<P>) -> Option<BddPtr> {
++    fn check_cached_hash_and_neg(&self, semantic_hash: FiniteField<P>) -> Option<BddPtr<'_>> {
+         // check regular hash
+         let mut hasher = FxHasher::default();
+         semantic_hash.value().hash(&mut hasher);
+diff --git a/src/builder/sdd/builder.rs b/src/builder/sdd/builder.rs
+index 5290f0b..1f2a8f5 100644
+--- a/src/builder/sdd/builder.rs
++++ b/src/builder/sdd/builder.rs
+@@ -28,12 +28,12 @@ pub trait SddBuilder<'a>: BottomUpBuilder<'a, SddPtr<'a>> {
+     fn app_cache_insert(&self, and: SddAnd<'a>, ptr: SddPtr<'a>);
+ 
+     fn ite_cache_hash(&self, ite: &Ite<SddPtr>) -> u64;
+-    fn ite_cache_get(&self, ite: Ite<SddPtr<'a>>, hash: u64) -> Option<SddPtr>;
++    fn ite_cache_get(&self, ite: Ite<SddPtr<'a>>, hash: u64) -> Option<SddPtr<'_>>;
+     fn ite_cache_insert(&self, ite: Ite<SddPtr<'a>>, res: SddPtr<'a>, hash: u64);
+ 
+     fn get_or_insert_bdd(&'a self, bdd: BinarySDD<'a>) -> SddPtr<'a>;
+     fn get_or_insert_sdd(&'a self, or: SddOr<'a>) -> SddPtr<'a>;
+-    fn node_iter(&self) -> Vec<SddPtr>;
++    fn node_iter(&self) -> Vec<SddPtr<'_>>;
+ 
+     // equality
+     fn sdd_eq(&'a self, a: SddPtr<'a>, b: SddPtr<'a>) -> bool;
+diff --git a/src/builder/sdd/compression.rs b/src/builder/sdd/compression.rs
+index f0db282..5940ecb 100644
+--- a/src/builder/sdd/compression.rs
++++ b/src/builder/sdd/compression.rs
+@@ -48,7 +48,7 @@ impl<'a> SddBuilder<'a> for CompressionSddBuilder<'a> {
+     }
+ 
+     #[inline]
+-    fn ite_cache_get(&self, ite: Ite<SddPtr<'a>>, hash: u64) -> Option<SddPtr> {
++    fn ite_cache_get(&self, ite: Ite<SddPtr<'a>>, hash: u64) -> Option<SddPtr<'_>> {
+         self.ite_cache.borrow().get(ite, hash)
+     }
+ 
+@@ -124,7 +124,7 @@ impl<'a> SddBuilder<'a> for CompressionSddBuilder<'a> {
+         self.unique_or(node, table)
+     }
+ 
+-    fn node_iter(&self) -> Vec<SddPtr> {
++    fn node_iter(&self) -> Vec<SddPtr<'_>> {
+         let binding = self.bdd_tbl.borrow_mut();
+         let bdds = binding.iter().map(SddPtr::BDD);
+         let binding = self.sdd_tbl.borrow_mut();
+diff --git a/src/builder/sdd/semantic.rs b/src/builder/sdd/semantic.rs
+index 66041e3..39c1661 100644
+--- a/src/builder/sdd/semantic.rs
++++ b/src/builder/sdd/semantic.rs
+@@ -45,7 +45,7 @@ impl<'a, const P: u128> SddBuilder<'a> for SemanticSddBuilder<'a, P> {
+         self.should_compress = b
+     }
+ 
+-    fn node_iter(&self) -> Vec<SddPtr> {
++    fn node_iter(&self) -> Vec<SddPtr<'_>> {
+         let binding = self.bdd_tbl.borrow_mut();
+         let bdds = binding.iter().map(SddPtr::BDD);
+         let binding = self.sdd_tbl.borrow_mut();
+@@ -73,7 +73,7 @@ impl<'a, const P: u128> SddBuilder<'a> for SemanticSddBuilder<'a, P> {
+         todo!()
+     }
+ 
+-    fn ite_cache_get(&self, _ite: Ite<SddPtr<'a>>, _hash: u64) -> Option<SddPtr> {
++    fn ite_cache_get(&self, _ite: Ite<SddPtr<'a>>, _hash: u64) -> Option<SddPtr<'_>> {
+         todo!()
+     }
+ 
+@@ -191,7 +191,7 @@ impl<'a, const P: u128> SemanticSddBuilder<'a, P> {
+         hasher.finish()
+     }
+ 
+-    fn get_shared_sdd_ptr(&self, semantic_hash: FiniteField<P>, hash: u64) -> Option<SddPtr> {
++    fn get_shared_sdd_ptr(&self, semantic_hash: FiniteField<P>, hash: u64) -> Option<SddPtr<'_>> {
+         match semantic_hash.value() {
+             0 => Some(SddPtr::PtrFalse),
+             1 => Some(SddPtr::PtrTrue),
+@@ -211,7 +211,7 @@ impl<'a, const P: u128> SemanticSddBuilder<'a, P> {
+         }
+     }
+ 
+-    fn check_cached_hash_and_neg(&self, semantic_hash: FiniteField<P>) -> Option<SddPtr> {
++    fn check_cached_hash_and_neg(&self, semantic_hash: FiniteField<P>) -> Option<SddPtr<'_>> {
+         // check regular hash
+         let mut hasher = FxHasher::default();
+         semantic_hash.value().hash(&mut hasher);
+diff --git a/src/ffi/wmc.rs b/src/ffi/wmc.rs
+index ad25be5..01e5985 100644
+--- a/src/ffi/wmc.rs
++++ b/src/ffi/wmc.rs
+@@ -1,8 +1,16 @@
+ use crate::{
+-    repr::{VarLabel, WmcParams},
+-    util::semirings::{Complex, RealSemiring},
++    // DDNNFPtr is required for the wmc method
++    repr::{VarLabel, WmcParams, BddPtr, DDNNFPtr}, 
++    util::semirings::{Complex, RealSemiring, Semiring},
++    // We import Polynomial and MAX_COEFFS from your implementation file
++    util::semirings::polynomial_semiring_implementation::{Polynomial, MAX_COEFFS},
+ };
+ use std::collections::HashMap;
++use std::slice;
++
++// =========================================================================
++// 1. Existing f64 / Complex Functions (Preserved)
++// =========================================================================
+ 
+ #[no_mangle]
+ unsafe extern "C" fn new_wmc_params_f64() -> *mut WmcParams<RealSemiring> {
+@@ -79,3 +87,139 @@ unsafe extern "C" fn weight_complex_lo(w: WeightComplex) -> Complex {
+ unsafe extern "C" fn weight_complex_hi(w: WeightComplex) -> Complex {
+     w.1
+ }
++
++// =========================================================================
++// 2. New Polynomial Extensions (Cleaned)
++// =========================================================================
++
++// Type Alias
++type PolyWeight = Polynomial<RealSemiring>;
++type PolyWmcParams = WmcParams<PolyWeight>;
++
++#[repr(C)]
++pub struct WeightPoly {
++    low: *mut PolyWeight,
++    high: *mut PolyWeight,
++}
++
++// --- Helper: Safely create a Polynomial from C pointers ---
++// This replaces the .collect() logic that was causing syntax errors
++unsafe fn from_c_parts(coeffs: *const f64, len: usize) -> PolyWeight {
++    if coeffs.is_null() || len == 0 {
++        return PolyWeight::zero();
++    }
++    
++    // Copy at most MAX_COEFFS items to fit in our fixed-size array
++    let actual_len = len.min(MAX_COEFFS);
++    let slice = slice::from_raw_parts(coeffs, actual_len);
++    
++    // Start with zero polynomial
++    let mut poly = PolyWeight::zero();
++    
++    // Manually fill the array fields
++    for (i, &val) in slice.iter().enumerate() {
++        poly.coefficients[i] = RealSemiring(val);
++    }
++    poly.len = actual_len;
++    
++    poly
++}
++
++#[no_mangle]
++unsafe extern "C" fn new_polynomial(coeffs: *const f64, len: usize) -> *mut PolyWeight {
++    let poly = from_c_parts(coeffs, len);
++    Box::into_raw(Box::new(poly))
++}
++
++#[no_mangle]
++unsafe extern "C" fn destroy_polynomial(p: *mut PolyWeight) {
++    if !p.is_null() {
++        let _ = Box::from_raw(p);
++    }
++}
++
++#[no_mangle]
++unsafe extern "C" fn new_wmc_params_poly() -> *mut PolyWmcParams {
++    Box::into_raw(Box::new(PolyWmcParams::new(HashMap::new())))
++}
++
++#[no_mangle]
++unsafe extern "C" fn destroy_wmc_params_poly(weights: *mut PolyWmcParams) {
++    if !weights.is_null() {
++        let _ = Box::from_raw(weights);
++    }
++}
++
++#[no_mangle]
++unsafe extern "C" fn wmc_param_poly_set_weight(
++    weights: *mut PolyWmcParams,
++    var: u64,
++    low_coeffs: *const f64,
++    low_len: usize,
++    high_coeffs: *const f64,
++    high_len: usize,
++) {
++    if weights.is_null() { return; }
++
++    let low_poly = from_c_parts(low_coeffs, low_len);
++    let high_poly = from_c_parts(high_coeffs, high_len);
++
++    (*weights).set_weight(VarLabel::new(var), low_poly, high_poly);
++}
++
++#[no_mangle]
++unsafe extern "C" fn wmc_param_poly_var_weight(
++    weights: *mut PolyWmcParams,
++    var: u64,
++) -> WeightPoly {
++    if weights.is_null() {
++        return WeightPoly { low: std::ptr::null_mut(), high: std::ptr::null_mut() };
++    }
++
++    let (l, h) = (*weights).var_weight(VarLabel::new(var));
++    
++    // Clone to heap and pass ownership to C/Racket
++    let low_ptr = Box::into_raw(Box::new(*l)); 
++    let high_ptr = Box::into_raw(Box::new(*h));
++
++    WeightPoly { low: low_ptr, high: high_ptr }
++}
++
++#[no_mangle]
++unsafe extern "C" fn polynomial_len(p: *mut PolyWeight) -> usize {
++    if p.is_null() { 0 } else { (*p).len }
++}
++
++#[no_mangle]
++unsafe extern "C" fn polynomial_get_coeffs(
++    p: *mut PolyWeight,
++    buffer: *mut f64,
++    max_len: usize,
++) -> usize {
++    if p.is_null() || buffer.is_null() { return 0; }
++    
++    let poly = &(*p);
++    let count = poly.len.min(max_len);
++    
++    let dest = slice::from_raw_parts_mut(buffer, count);
++    for i in 0..count {
++        dest[i] = poly.coefficients[i].0; 
++    }
++    
++    count
++}
++
++#[no_mangle]
++unsafe extern "C" fn bdd_wmc_poly(
++    bdd: *mut BddPtr, 
++    weights: *mut PolyWmcParams,
++) -> *mut PolyWeight {
++    if bdd.is_null() || weights.is_null() {
++        return std::ptr::null_mut();
++    }
++    
++    // Fix: Use DDNNFPtr::unsmoothed_wmc to perform the count
++    let result = DDNNFPtr::unsmoothed_wmc(&(*bdd), &(*weights));
++    
++    Box::into_raw(Box::new(result))
++}
+\ No newline at end of file
+diff --git a/src/lib.rs b/src/lib.rs
+index b8fab4d..bf9b4c8 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -22,6 +22,7 @@ pub mod plan;
+ pub mod repr;
+ pub mod serialize;
+ 
++
+ #[cfg(target_arch = "wasm32")]
+ pub mod wasm;
+ 
+diff --git a/src/repr/bdd.rs b/src/repr/bdd.rs
+index e5fcd1b..80e5438 100644
+--- a/src/repr/bdd.rs
++++ b/src/repr/bdd.rs
+@@ -202,7 +202,7 @@ impl<'a> BddPtr<'a> {
+     /// assert_eq!(BddPtr::Reg(&node), BddPtr::Compl(&node).to_reg());
+     /// assert_eq!(BddPtr::Reg(&node), BddPtr::Reg(&node).to_reg());
+     /// ```
+-    pub fn to_reg(&self) -> BddPtr {
++    pub fn to_reg(&self) -> BddPtr<'_> {
+         match &self {
+             Compl(x) => Reg(x),
+             Reg(x) => Reg(x),
+diff --git a/src/repr/mod.rs b/src/repr/mod.rs
+index c6b8190..3455bc1 100644
+--- a/src/repr/mod.rs
++++ b/src/repr/mod.rs
+@@ -24,7 +24,6 @@ pub use self::dtree::*;
+ pub use self::logical_expr::*;
+ pub use self::model::*;
+ pub use self::sdd::*;
+-pub use self::sdd::*;
+ pub use self::unit_prop::*;
+ pub use self::var_label::*;
+ pub use self::var_order::*;
+diff --git a/src/util/semirings/ffi_polynomial_semiring.rs b/src/util/semirings/ffi_polynomial_semiring.rs
+new file mode 100644
+index 0000000..b588f51
+--- /dev/null
++++ b/src/util/semirings/ffi_polynomial_semiring.rs
+@@ -0,0 +1,137 @@
++use super::polynomial_semiring_implementation::{Polynomial, MAX_COEFFS};
++use crate::util::semirings::{RealSemiring, Semiring};
++// CHANGE: Added DDNNFPtr to imports so we can call unsmoothed_wmc
++use crate::repr::{WmcParams, VarLabel, BddPtr, DDNNFPtr}; 
++use std::{collections::HashMap, slice};
++
++type PolyWeight = Polynomial<RealSemiring>;
++type PolyWmcParams = WmcParams<PolyWeight>;
++
++#[repr(C)]
++pub struct WeightPoly {
++    low: *mut PolyWeight,
++    high: *mut PolyWeight,
++}
++
++// --- Helper: safely create a Polynomial from C pointers ---
++unsafe fn from_c_parts(coeffs: *const f64, len: usize) -> PolyWeight {
++    if coeffs.is_null() || len == 0 {
++        return PolyWeight::zero();
++    }
++    
++    // Copy at most MAX_COEFFS items
++    let actual_len = len.min(MAX_COEFFS);
++    let slice = slice::from_raw_parts(coeffs, actual_len);
++    
++    // Initialize with zeros
++    let mut poly = PolyWeight::zero();
++    
++    // Fill the buffer
++    for (i, &val) in slice.iter().enumerate() {
++        poly.coefficients[i] = RealSemiring(val);
++    }
++    poly.len = actual_len;
++    
++    poly
++}
++
++// --- FFI Functions ---
++
++#[no_mangle]
++unsafe extern "C" fn new_polynomial(coeffs: *const f64, len: usize) -> *mut PolyWeight {
++    let poly = from_c_parts(coeffs, len);
++    Box::into_raw(Box::new(poly))
++}
++
++#[no_mangle]
++unsafe extern "C" fn destroy_polynomial(p: *mut PolyWeight) {
++    if !p.is_null() {
++        let _ = Box::from_raw(p);
++    }
++}
++
++#[no_mangle]
++unsafe extern "C" fn new_wmc_params_poly() -> *mut PolyWmcParams {
++    Box::into_raw(Box::new(PolyWmcParams::new(HashMap::new())))
++}
++
++#[no_mangle]
++unsafe extern "C" fn destroy_wmc_params_poly(weights: *mut PolyWmcParams) {
++    if !weights.is_null() {
++        let _ = Box::from_raw(weights);
++    }
++}
++
++#[no_mangle]
++unsafe extern "C" fn wmc_param_poly_set_weight(
++    weights: *mut PolyWmcParams,
++    var: u64,
++    low_coeffs: *const f64,
++    low_len: usize,
++    high_coeffs: *const f64,
++    high_len: usize,
++) {
++    if weights.is_null() { return; }
++
++    let low_poly = from_c_parts(low_coeffs, low_len);
++    let high_poly = from_c_parts(high_coeffs, high_len);
++
++    (*weights).set_weight(VarLabel::new(var), low_poly, high_poly);
++}
++
++#[no_mangle]
++unsafe extern "C" fn wmc_param_poly_var_weight(
++    weights: *mut PolyWmcParams,
++    var: u64,
++) -> WeightPoly {
++    if weights.is_null() {
++        return WeightPoly { low: std::ptr::null_mut(), high: std::ptr::null_mut() };
++    }
++
++    let (l, h) = (*weights).var_weight(VarLabel::new(var));
++    
++    let low_ptr = Box::into_raw(Box::new(*l)); 
++    let high_ptr = Box::into_raw(Box::new(*h));
++
++    WeightPoly { low: low_ptr, high: high_ptr }
++}
++
++#[no_mangle]
++unsafe extern "C" fn polynomial_len(p: *mut PolyWeight) -> usize {
++    if p.is_null() { 0 } else { (*p).len }
++}
++
++#[no_mangle]
++unsafe extern "C" fn polynomial_get_coeffs(
++    p: *mut PolyWeight,
++    buffer: *mut f64,
++    max_len: usize,
++) -> usize {
++    if p.is_null() || buffer.is_null() { return 0; }
++    
++    let poly = &(*p);
++    let count = poly.len.min(max_len);
++    
++    let dest = slice::from_raw_parts_mut(buffer, count);
++    for i in 0..count {
++        dest[i] = poly.coefficients[i].0; 
++    }
++    
++    count
++}
++
++// CHANGE: Updated to use DDNNFPtr::unsmoothed_wmc
++#[no_mangle]
++unsafe extern "C" fn bdd_wmc_poly(
++    bdd: *mut BddPtr, 
++    weights: *mut PolyWmcParams,
++) -> *mut PolyWeight {
++    if bdd.is_null() || weights.is_null() {
++        return std::ptr::null_mut();
++    }
++    
++    // Correct way to invoke WMC in this version of rsdd
++    let result = DDNNFPtr::unsmoothed_wmc(&(*bdd), &(*weights));
++    
++    Box::into_raw(Box::new(result))
++}
+\ No newline at end of file
+diff --git a/src/util/semirings/ffi_polynomial_semiring_vec.rs b/src/util/semirings/ffi_polynomial_semiring_vec.rs
+new file mode 100644
+index 0000000..2bfa957
+--- /dev/null
++++ b/src/util/semirings/ffi_polynomial_semiring_vec.rs
+@@ -0,0 +1,193 @@
++use super::semiring_traits::*;
++use crate::util::semirings::RealSemiring;
++use crate::repr::WmcParams;
++use crate::repr::VarLabel;
++use super::polynomial_semiring_implementation::Polynomial;
++use std::{collections::HashMap, slice};
++
++// --- Type Alias for Clarity ---
++/// The concrete polynomial type used in the FFI.
++type PolyWeight = Polynomial<RealSemiring>;
++type PolyWmcParams = WmcParams<PolyWeight>;
++
++// --- Helper Functions for Polynomial Management ---
++
++/// Creates a new Polynomial<RealSemiring> from a C array of f64 coefficients.
++/// The caller (C) is responsible for destroying the returned pointer using `destroy_polynomial`.
++#[no_mangle]
++unsafe extern "C" fn new_polynomial(
++    coeffs: *const f64,
++    len: usize,
++) -> *mut PolyWeight {
++    if coeffs.is_null() || len == 0 {
++        return Box::into_raw(Box::new(PolyWeight::zero()));
++    }
++    
++    // Create a slice from the raw C pointer
++    let coeff_slice = slice::from_raw_parts(coeffs, len);
++    
++    // Map f64 values to RealSemiring wrapper structs
++    let coefficients = coeff_slice.iter().map(|&c| RealSemiring(c)).collect();
++    
++    Box::into_raw(Box::new(Polynomial { coefficients }))
++}
++
++/// Destroys a Polynomial pointer allocated by new_polynomial.
++/// This prevents memory leaks on the Rust side.
++#[no_mangle]
++unsafe extern "C" fn destroy_polynomial(p: *mut PolyWeight) {
++    if !p.is_null() {
++        // Retake ownership and drop the Box
++        let _ = Box::from_raw(p);
++    }
++}
++
++
++// --- FFI for WmcParams<PolyWeight> ---
++
++/// Initializes new WmcParams for the Polynomial Semiring with an empty set of weights.
++/// Returns an opaque pointer to the WmcParams object.
++#[no_mangle]
++unsafe extern "C" fn new_wmc_params_poly() -> *mut PolyWmcParams {
++    // We use a small HashMap to satisfy the new() signature, effectively creating a default instance.
++    Box::into_raw(Box::new(PolyWmcParams::new(HashMap::new())))
++}
++
++/// Destroys the WmcParams object and frees its associated memory.
++#[no_mangle]
++unsafe extern "C" fn destroy_wmc_params_poly(weights: *mut PolyWmcParams) {
++    if !weights.is_null() {
++        // Retake ownership and drop the Box
++        let _ = Box::from_raw(weights);
++    }
++}
++
++/// Sets the weight for a given variable using two arrays of f64 coefficients.
++/// The coefficients are passed as C arrays (pointers and lengths).
++///
++/// NOTE: This function creates new Polynomial objects from the C data, which are
++/// then cloned into the WmcParams structure.
++#[no_mangle]
++unsafe extern "C" fn wmc_param_poly_set_weight(
++    weights: *mut PolyWmcParams,
++    var: u64,
++    low_coeffs: *const f64,
++    low_len: usize,
++    high_coeffs: *const f64,
++    high_len: usize,
++) {
++    if weights.is_null() {
++        // Handle null pointer case (or log an error)
++        return;
++    }
++
++    // 1. Create the Low Polynomial
++    let low_slice = slice::from_raw_parts(low_coeffs, low_len);
++    let low_poly = Polynomial {
++        coefficients: low_slice.iter().map(|&c| RealSemiring(c)).collect(),
++    };
++
++    // 2. Create the High Polynomial
++    let high_slice = slice::from_raw_parts(high_coeffs, high_len);
++    let high_poly = Polynomial {
++        coefficients: high_slice.iter().map(|&c| RealSemiring(c)).collect(),
++    };
++
++    // 3. Set the weight in WmcParams
++    (*weights).set_weight(VarLabel::new(var), low_poly, high_poly);
++}
++
++/// A structure designed to return the two Polynomial pointers across the FFI boundary.
++/// The caller MUST destroy the returned polynomials using `destroy_polynomial` 
++/// after they are no longer needed.
++#[repr(C)]
++pub struct WeightPoly {
++    // Opaque pointer to the low polynomial
++    low: *mut PolyWeight,
++    // Opaque pointer to the high polynomial
++    high: *mut PolyWeight,
++}
++
++/// Retrieves the (low, high) weight polynomials for a given variable.
++///
++/// Returns a WeightPoly struct containing two pointers to heap-allocated
++/// Polynomial clones. The caller (C) is responsible for destroying these
++/// two returned polynomial pointers.
++#[no_mangle]
++unsafe extern "C" fn wmc_param_poly_var_weight(
++    weights: *mut PolyWmcParams,
++    var: u64,
++) -> WeightPoly {
++    if weights.is_null() {
++        return WeightPoly { low: std::ptr::null_mut(), high: std::ptr::null_mut() };
++    }
++
++    let (l, h) = (*weights).var_weight(VarLabel::new(var));
++    
++    // We must clone the polynomials and allocate them on the heap
++    // so the Rust `Box` can manage their lifetime, and we can return
++    // the pointer to the C caller.
++    let low_ptr = Box::into_raw(Box::new(l.clone()));
++    let high_ptr = Box::into_raw(Box::new(h.clone()));
++
++    WeightPoly {
++        low: low_ptr,
++        high: high_ptr,
++    }
++}
++
++/// Returns the length of the coefficient vector of a Polynomial pointer.
++#[no_mangle]
++unsafe extern "C" fn polynomial_len(p: *mut PolyWeight) -> usize {
++    if p.is_null() {
++        return 0;
++    }
++    // Access the polynomial and return the length of its vector
++    (*p).coefficients.len()
++}
++
++/// Writes the coefficients of a Polynomial pointer into a C array (buffer).
++///
++/// # Arguments
++/// * `p`: A pointer to the Polynomial object.
++/// * `buffer`: A C-allocated buffer of f64, which must have a capacity of at least `polynomial_len(p)`.
++/// * `max_len`: The size of the C buffer (for safety).
++///
++/// Returns the number of coefficients actually written.
++#[no_mangle]
++unsafe extern "C" fn polynomial_get_coeffs(
++    p: *mut PolyWeight,
++    buffer: *mut f64,
++    max_len: usize,
++) -> usize {
++    if p.is_null() || buffer.is_null() {
++        return 0;
++    }
++    
++    let poly = &(*p);
++    let coeffs = &poly.coefficients;
++    let len = coeffs.len().min(max_len);
++    
++    let destination_slice = slice::from_raw_parts_mut(buffer, len);
++    
++    for i in 0..len {
++        destination_slice[i] = coeffs[i].0; // Access the inner f64 of RealSemiring
++    }
++    
++    len
++}
++
++#[no_mangle]
++unsafe extern "C" fn bdd_wmc_poly(
++    bdd: *const crate::repr::BddPtr, 
++    weights: *const PolyWmcParams,
++) -> *mut PolyWeight {
++    if bdd.is_null() || weights.is_null() {
++        return std::ptr::null_mut();
++    }
++    
++    let result = (*bdd).wmc(&*weights);    
++    // The result is a Semiring value (Polynomial). 
++    // We clone it into a Box and return the raw pointer to Racket.
++    Box::into_raw(Box::new(result.value.clone()))
++}
+\ No newline at end of file
+diff --git a/src/util/semirings/mod.rs b/src/util/semirings/mod.rs
+index 670163f..ebc8130 100644
+--- a/src/util/semirings/mod.rs
++++ b/src/util/semirings/mod.rs
+@@ -6,6 +6,8 @@ mod rational;
+ mod realsemiring;
+ mod semiring_traits;
+ mod tropical;
++pub mod polynomial_semiring_implementation;
++
+ 
+ pub use self::boolean::*;
+ pub use self::complex::*;
+@@ -14,4 +16,5 @@ pub use self::finitefield::*;
+ pub use self::rational::*;
+ pub use self::realsemiring::*;
+ pub use self::semiring_traits::*;
+-pub use self::tropical::*;
++pub use self::polynomial_semiring_implementation::*;
++
+diff --git a/src/util/semirings/poly_semiring.rs b/src/util/semirings/poly_semiring.rs
+new file mode 100644
+index 0000000..f53b719
+--- /dev/null
++++ b/src/util/semirings/poly_semiring.rs
+@@ -0,0 +1,56 @@
++use super::semiring_traits::*;
++use std::(fmt::Display, ops);
++#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
++pub struct Polysemiring<C> {
++    coefficients: Vec<C>,
++}
++
++impl<C: Semiring+Clone> Semiring for Poylnomial<C> {
++    fn zero() -> Self {
++	Polynomial {coeffs: Vec:new()}
++    }
++
++    fn one() -> Self {
++	Polynomial {coeffs: vec![C::one()]}
++    }
++}
++
++impl<C: Semiring + Clone> ops::Add for Polynomial<C> {
++    type Output = Self;
++
++    fn add(self, rhs:Self) -> Self::Output {
++	let max_len = self.coeffs.len().max(rhs.coeffs.len());
++	let mut new_coeffs = Vec::with_capacity(max_len);
++
++	for i in 0..max_len {
++	    let left_coeff = self.coeffs.get(i).cloned().unwrap_or(C::zero());
++	    let right_coef = rhs.coeffs.get(i).cloned().unwrap_or(C::zero());
++	    new_coeffs.push(left_coeff+right_coeff);
++	}
++	Polynomial {coeffs: new_coeffs}
++    }
++}
++			 
++
++impl<C: Semiring + Clone> ops::Mul for Polynomial<C> {
++    type Output = Self;
++
++    for mul(self, rhs: Self) -> Self::Output {
++	let n = self.coeffs.len();
++	let m = self.coeffs.len();
++	if n== 0 || m == 0 {
++	    return Polynomial::zero();
++	}
++	let mul new_coeffs = vec![C::zero(); n+m-1];
++	for i in 0..n {
++	    for j in 0..m {
++		let term = self.coeffs[i].clone() * rhs.coeffs[j].clone();
++		new_coeffs[i] = new_coeffs[i+j].clone()+term;
++	    }
++	}
++	Polynomial {coeffs: new_coeffs}
++    }
++}
++			 
++
++
+diff --git a/src/util/semirings/polynomial_semiring_implementation.rs b/src/util/semirings/polynomial_semiring_implementation.rs
+new file mode 100644
+index 0000000..9a487a4
+--- /dev/null
++++ b/src/util/semirings/polynomial_semiring_implementation.rs
+@@ -0,0 +1,101 @@
++use crate::util::semirings::Semiring;
++use std::ops;
++use core::fmt::{self, Debug, Display};
++
++// Define a maximum degree (e.g., 32 coefficients).
++// This makes the struct size predictable and allows 'Copy'.
++pub const MAX_COEFFS: usize = 32;
++
++#[derive(Clone, Copy, PartialEq, Eq)]
++pub struct Polynomial<C> {
++    pub coefficients: [C; MAX_COEFFS], // Public so FFI can access it
++    pub len: usize,                    // The actual number of used coefficients
++}
++
++// --- Debug & Display ---
++
++impl<C: Semiring + Copy + Debug> Debug for Polynomial<C> {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        write!(f, "Polynomial(len={})", self.len)
++    }
++}
++
++impl<C: Semiring + Copy + Display> Display for Polynomial<C> {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        if self.len == 0 {
++            return write!(f, "0");
++        }
++        // Simple display logic
++        write!(f, "Poly(degree {})", self.len - 1)
++    }
++}
++
++// --- Semiring Implementation ---
++
++impl<C: Semiring + Copy> Semiring for Polynomial<C> {
++    fn zero() -> Self {
++        // [C::zero(); 32] works because RealSemiring is Copy
++        Polynomial {
++            coefficients: [C::zero(); MAX_COEFFS],
++            len: 0,
++        }
++    }
++
++    fn one() -> Self {
++        let mut coeffs = [C::zero(); MAX_COEFFS];
++        coeffs[0] = C::one();
++        Polynomial {
++            coefficients: coeffs,
++            len: 1,
++        }
++    }
++}
++
++// --- Addition ---
++
++impl<C: Semiring + Copy> ops::Add for Polynomial<C> {
++    type Output = Self;
++
++    fn add(self, rhs: Self) -> Self::Output {
++        let max_len = self.len.max(rhs.len).min(MAX_COEFFS);
++        let mut new_coeffs = [C::zero(); MAX_COEFFS];
++
++        for i in 0..max_len {
++            new_coeffs[i] = self.coefficients[i] + rhs.coefficients[i];
++        }
++
++        Polynomial {
++            coefficients: new_coeffs,
++            len: max_len,
++        }
++    }
++}
++
++// --- Multiplication ---
++
++impl<C: Semiring + Copy> ops::Mul for Polynomial<C> {
++    type Output = Self;
++
++    fn mul(self, rhs: Self) -> Self::Output {
++        if self.len == 0 || rhs.len == 0 {
++            return Self::zero();
++        }
++
++        // Result length is len1 + len2 - 1
++        let new_len = (self.len + rhs.len).saturating_sub(1).min(MAX_COEFFS);
++        let mut new_coeffs = [C::zero(); MAX_COEFFS];
++
++        for i in 0..self.len {
++            for j in 0..rhs.len {
++                if i + j < MAX_COEFFS {
++                    new_coeffs[i + j] = new_coeffs[i + j] + (self.coefficients[i] * rhs.coefficients[j]);
++                }
++            }
++        }
++
++        Polynomial {
++            coefficients: new_coeffs,
++            len: new_len,
++        }
++    }
++}
+\ No newline at end of file
+diff --git a/src/util/semirings/polynomial_semiring_implementation_vec.rs b/src/util/semirings/polynomial_semiring_implementation_vec.rs
+new file mode 100644
+index 0000000..0bae7da
+--- /dev/null
++++ b/src/util/semirings/polynomial_semiring_implementation_vec.rs
+@@ -0,0 +1,313 @@
++use super::semiring_traits::*;
++use crate::repr::VarLabel;
++use crate::repr::WmcParams;
++use crate::repr::Literal;
++use std::{collections::HashMap, ops};
++use core::fmt::Debug;
++
++
++use crate::util::semirings::{RealSemiring, Semiring};
++use core::fmt::{self, Display};
++
++// 1. Define a constant for max size
++const MAX_DEGREE: usize = 32; 
++
++// 2. Use 'Copy' on the struct. 
++// We use an array [C; MAX_DEGREE] and a length field.
++#[derive(Clone, Copy, PartialEq, Eq)]
++pub struct Polynomial<C> {
++    coefficients: [C; MAX_DEGREE], // Fixed size array is Copy if C is Copy
++    len: usize,                    // Track actual degree
++}
++
++impl<C: Semiring + Copy> Debug for Polynomial<C> {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        write!(f, "Polynomial(deg {})", self.len)
++    }
++}
++
++// Minimal Display impl to satisfy trait
++impl<C: Semiring + Copy + Display> Display for Polynomial<C> {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        write!(f, "Poly") 
++    }
++}
++
++impl<C: Semiring + Copy> Semiring for Polynomial<C> {
++    fn zero() -> Self {
++        // [C::zero(); N] requires C: Copy, which RealSemiring is.
++        Polynomial {
++            coefficients: [C::zero(); MAX_DEGREE],
++            len: 0,
++        }
++    }
++
++    fn one() -> Self {
++        let mut coeffs = [C::zero(); MAX_DEGREE];
++        coeffs[0] = C::one();
++        Polynomial {
++            coefficients: coeffs,
++            len: 1,
++        }
++    }
++}
++
++impl<C: Semiring + Copy> ops::Add for Polynomial<C> {
++    type Output = Self;
++    fn add(self, rhs: Self) -> Self::Output {
++        let max_len = self.len.max(rhs.len);
++        let mut new_coeffs = [C::zero(); MAX_DEGREE];
++        
++        for i in 0..max_len {
++            new_coeffs[i] = self.coefficients[i] + rhs.coefficients[i];
++        }
++        
++        Polynomial {
++            coefficients: new_coeffs,
++            len: max_len, // (Should technically strip trailing zeros here)
++        }
++    }
++}
++
++impl<C: Semiring + Copy> ops::Mul for Polynomial<C> {
++    type Output = Self;
++    fn mul(self, rhs: Self) -> Self::Output {
++        if self.len == 0 || rhs.len == 0 { return Self::zero(); }
++        
++        let new_len = (self.len + rhs.len).saturating_sub(1);
++        if new_len > MAX_DEGREE {
++            panic!("Polynomial degree overflow!");
++        }
++
++        let mut new_coeffs = [C::zero(); MAX_DEGREE];
++
++        for i in 0..self.len {
++            for j in 0..rhs.len {
++                if i + j < MAX_DEGREE {
++                    new_coeffs[i+j] = new_coeffs[i+j] + (self.coefficients[i] * rhs.coefficients[j]);
++                }
++            }
++        }
++        
++        Polynomial {
++            coefficients: new_coeffs,
++            len: new_len,
++        }
++    }
++}
++
++/*
++/// Represents a polynomial P(x) = c_0 + c_1*x + c_2*x^2 + ...
++/// where coefficients `C` are from a base Semiring.
++#[derive(Clone, PartialEq, Eq)]
++pub struct Polynomial<C> {
++    /// coefficients[i] is the coefficient for x^i
++    coefficients: Vec<C>,
++}
++
++// --- Required Traits for Polynomial ---
++
++// Because Polynomial contains Vec<C>, it cannot implement `Copy`. 
++// This is the only trait in `Semiring` it cannot satisfy. 
++// We implement the others, noting this limitation.
++
++impl<C: Debug> Debug for Polynomial<C> {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        let poly_str = self.coefficients.iter().enumerate()
++            .filter_map(|(i, c)| {
++                // Filter out zero coefficients for cleaner debug output (assuming C::zero() is implied)
++                if i == 0 {
++                    Some(format!("{:?}", c))
++                } else {
++                    Some(format!("{:?}x^{}", c, i))
++                }
++            })
++            .collect::<Vec<String>>()
++            .join(" + ");
++        
++        write!(f, "Polynomial({})", poly_str)
++    }
++}
++
++impl<C: std::fmt::Display> std::fmt::Display for Polynomial<C> {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        let poly_str = self.coefficients.iter().enumerate()
++            .rev() // Start from the highest power
++            .filter(|(_i, c)| {
++                // A quick check to skip coefficients that evaluate to "0"
++                format!("{}", c) != "0" && format!("{}", c) != "0.0"
++            })
++            .map(|(i, c)| {
++                match i {
++                    0 => format!("{}", c),
++                    1 => format!("{}x", c),
++                    _ => format!("{}x^{}", c, i),
++                }
++            })
++            .collect::<Vec<String>>()
++            .join(" + ");
++
++        if poly_str.is_empty() {
++            write!(f, "0")
++        } else {
++            write!(f, "{}", poly_str)
++        }
++    }
++}
++
++
++// --- Semiring Implementation for Polynomial ---
++
++impl<C: Semiring + Clone> Semiring for Polynomial<C> {
++    // The zero polynomial is the empty vector of coefficients
++    fn zero() -> Self {
++        Polynomial {
++            coefficients: Vec::new(),
++        }
++    }
++
++    // The one polynomial is 1*x^0, i.e., [C::one()]
++    fn one() -> Self {
++        Polynomial {
++            coefficients: vec![C::one()],
++        }
++    }
++}
++
++// --- Add Implementation for Polynomial (Coefficient-wise addition) ---
++
++impl<C: Semiring + Clone> ops::Add for Polynomial<C> {
++    type Output = Self;
++
++    fn add(self, rhs: Self) -> Self::Output {
++        let n = self.coefficients.len();
++        let m = rhs.coefficients.len();
++        let max_len = n.max(m);
++        let mut new_coeffs = Vec::with_capacity(max_len);
++
++        for i in 0..max_len {
++            // Get coefficient or default to C::zero()
++            let left_coeff = self.coefficients.get(i).cloned().unwrap_or(C::zero());
++            let right_coeff = rhs.coefficients.get(i).cloned().unwrap_or(C::zero());
++            
++            // Add the coefficients
++            new_coeffs.push(left_coeff + right_coeff);
++        }
++
++        // Clean up trailing zeros (optional but good practice)
++        while new_coeffs.last().map_or(false, |c| format!("{}", c) == "0" || format!("{}", c) == "0.0") && new_coeffs.len() > 1 {
++            new_coeffs.pop();
++        }
++
++        Polynomial { coefficients: new_coeffs }
++    }
++}
++
++// --- Mul Implementation for Polynomial (Convolution) ---
++
++impl<C: Semiring + Clone> ops::Mul for Polynomial<C> {
++    type Output = Self;
++
++    fn mul(self, rhs: Self) -> Self::Output {
++        let n = self.coefficients.len();
++        let m = rhs.coefficients.len();
++
++        // If either polynomial is zero, the result is zero.
++        if n == 0 || m == 0 {
++            return Polynomial::zero();
++        }
++
++        // The degree of the result is deg(P) + deg(Q), so the length is (n-1) + (m-1) + 1 = n + m - 1
++        let mut new_coeffs = vec![C::zero(); n + m - 1];
++
++        for i in 0..n {
++            for j in 0..m {
++                // Calculate the term: self.coeffs[i] * rhs.coeffs[j]
++                let term = self.coefficients[i].clone() * rhs.coefficients[j].clone();
++                let result_index = i + j;
++
++                // Add to the resulting coefficient: new_coeffs[i+j] += term
++                let current = new_coeffs[result_index].clone();
++                new_coeffs[result_index] = current + term;
++            }
++        }
++
++        // Clean up trailing zeros (optional)
++        while new_coeffs.last().map_or(false, |c| format!("{}", c) == "0" || format!("{}", c) == "0.0") && new_coeffs.len() > 1 {
++            new_coeffs.pop();
++        }
++        
++        Polynomial { coefficients: new_coeffs }
++    }
++}
++
++// --- Example Usage in main ---
++
++fn main() {
++    println!("--- Polynomial Semiring for Weighted Model Counting ---");
++
++    // Define the type for our weights: Polynomials over RealSemiring (f64)
++    type PolyWeight = Polynomial<RealSemiring>;
++
++    // P(x) = 0.5 + 0.5x
++    let p_v0 = PolyWeight {
++        coefficients: vec![RealSemiring(0.5), RealSemiring(0.5)],
++    };
++    // Q(x) = 0.3 + 0.7x
++    let p_v1 = PolyWeight {
++        coefficients: vec![RealSemiring(0.3), RealSemiring(0.7)],
++    };
++    // R(x) = 0.9x^2 (for a more interesting example)
++    let p_v2 = PolyWeight {
++        coefficients: vec![RealSemiring(0.0), RealSemiring(0.0), RealSemiring(0.9)],
++    };
++
++    // Construct the WmcParams map:
++    // Var 0: low weight = P(x), high weight = P(x)
++    // Var 1: low weight = Q(x), high weight = Q(x)
++    // Var 2: low weight = 1.0, high weight = R(x)
++    let mut weights = HashMap::new();
++    weights.insert(VarLabel::new(0), (p_v0.clone(), p_v0.clone()));
++    weights.insert(VarLabel::new(1), (p_v1.clone(), p_v1.clone()));
++    // For Var 2, we use Polynomial::one() which is 1
++    weights.insert(VarLabel::new(2), (PolyWeight::one(), p_v2.clone()));
++
++    // Instantiate WmcParams with the Polynomial Semiring
++    let params: WmcParams<PolyWeight> = WmcParams::new(weights);
++
++    println!("\nInstantiated WMC Parameters (PolySemiring):");
++    println!("{:?}", params);
++
++    // --- Calculate WMC for a specific assignment ---
++    // Assignment: Var 0 = True, Var 1 = False, Var 2 = True
++    let assignment = [
++        Literal::new(VarLabel::new(0), true),
++        Literal::new(VarLabel::new(1), false),
++        Literal::new(VarLabel::new(2), true),
++    ];
++    
++    // Expected result: 
++    // Weight(0, True) * Weight(1, False) * Weight(2, True)
++    // p_v0 (0.5 + 0.5x) * p_v1 (0.3 + 0.7x) * p_v2 (0.9x^2)
++
++    let wmc_result = params.assignment_weight(&assignment);
++    
++    // (0.5 + 0.5x) * (0.3 + 0.7x) 
++    // = 0.5*0.3 + (0.5*0.7 + 0.5*0.3)x + 0.5*0.7x^2
++    // = 0.15 + (0.35 + 0.15)x + 0.35x^2
++    // = 0.15 + 0.5x + 0.35x^2
++    
++    // Result * 0.9x^2
++    // = 0.15*0.9x^2 + 0.5*0.9x^3 + 0.35*0.9x^4
++    // = 0.135x^2 + 0.45x^3 + 0.315x^4
++
++    println!("\nAssignment: Var0=T, Var1=F, Var2=T");
++    println!("Calculated WMC Weight (P(x)): {}", wmc_result);
++    println!("Coefficients (Debug format): {:?}", wmc_result);
++    
++    // The coefficients should be approximately: [0.0, 0.0, 0.135, 0.45, 0.315]
++}
++
++// Running this will output:
++// Calculated WMC Weight (P(x)): 0.315x^4 + 0.45x^3 + 0.135x^2
++*/
+\ No newline at end of file
+diff --git a/src/util/semirings/semiring_traits_and_wmc_params.rs b/src/util/semirings/semiring_traits_and_wmc_params.rs
+new file mode 100644
+index 0000000..883a863
+--- /dev/null
++++ b/src/util/semirings/semiring_traits_and_wmc_params.rs
+@@ -0,0 +1,163 @@
++// --- Utility types required for WmcParams to compile ---
++
++use core::fmt::Debug;
++use std::{collections::HashMap, ops};
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
++#[repr(transparent)]
++pub struct VarLabel(u32);
++
++impl VarLabel {
++    pub fn new(v: u32) -> Self { Self(v) }
++    pub fn value_usize(&self) -> usize { self.0 as usize }
++}
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub struct Literal(VarLabel, bool);
++
++impl Literal {
++    pub fn new(label: VarLabel, polarity: bool) -> Self { Self(label, polarity) }
++    pub fn polarity(&self) -> bool { self.1 }
++    pub fn label(&self) -> VarLabel { self.0 }
++}
++
++// --- Semiring Trait Definitions (as provided by user) ---
++
++/// A semiring is a set equipped with addition and multiplication.
++pub trait Semiring:
++    Debug + Clone + Copy + std::fmt::Display + ops::Add<Self, Output = Self> + ops::Mul<Self, Output = Self>
++{
++    fn one() -> Self;
++    fn zero() -> Self;
++}
++
++// (Other traits like Ring, JoinSemilattice, etc., are omitted for brevity as they are not needed for this solution)
++
++// --- WmcParams Struct (as provided by user) ---
++
++/// Weighted model counting parameters for a BDD. It primarily is a storage for
++/// the weight on each variable.
++#[repr(C)]
++#[derive(Clone)]
++pub struct WmcParams<T: Semiring> {
++    pub zero: T,
++    pub one: T,
++    /// a vector which maps variable labels to `(low, high)` valuations.
++    pub var_to_val: Vec<Option<(T, T)>>,
++}
++
++impl<T: Semiring> WmcParams<T> {
++    /// Parametrize a weighted model count (over a semiring) with default weights.
++    pub fn new(var_to_val: HashMap<VarLabel, (T, T)>) -> WmcParams<T> {
++        let mut var_to_val_vec: Vec<Option<(T, T)>> = vec![None; var_to_val.len()];
++        for (key, value) in var_to_val.iter() {
++            var_to_val_vec[key.value_usize()] = Some(*value);
++        }
++        WmcParams {
++            zero: T::zero(),
++            one: T::one(),
++            var_to_val: var_to_val_vec,
++        }
++    }
++
++    /// get the weight of an asignment
++    pub fn assignment_weight(&self, assgn: &[Literal]) -> T {
++        let mut prod = self.one;
++        for lit in assgn.iter() {
++            if lit.polarity() {
++                // Requires T: Clone + Mul
++                prod = prod * self.var_to_val[lit.label().value_usize()].as_ref().unwrap().1.clone();
++            } else {
++                // Requires T: Clone + Mul
++                prod = prod * self.var_to_val[lit.label().value_usize()].as_ref().unwrap().0.clone();
++            }
++        }
++        prod
++    }
++
++    pub fn set_weight(&mut self, lbl: VarLabel, low: T, high: T) {
++        let n = lbl.value_usize();
++        while n >= self.var_to_val.len() {
++            self.var_to_val.push(None);
++        }
++        self.var_to_val[n] = Some((low, high));
++    }
++
++    pub fn var_weight(&self, label: VarLabel) -> &(T, T) {
++        return (self.var_to_val[label.value_usize()]).as_ref().unwrap();
++    }
++}
++
++impl<T: Semiring> Debug for WmcParams<T> {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.debug_struct("WmcParams")
++            .field("zero", &self.zero)
++            .field("one", &self.one)
++            .field(
++                "var_to_val",
++                &self
++                    .var_to_val
++                    .iter()
++                    .enumerate()
++                    .map(|(index, val)| {
++                        if let Some((low, high)) = val {
++                            format!("{}: l: {:?}, h: {:?}", index, low, high)
++                        } else {
++                            format!("{}: None", index)
++                        }
++                    })
++                    .collect::<Vec<String>>(),
++            )
++            .finish()
++    }
++}
++
++impl<T: Semiring> Default for WmcParams<T> {
++    fn default() -> Self {
++        WmcParams {
++            zero: T::zero(),
++            one: T::one(),
++            var_to_val: Vec::new(),
++        }
++    }
++}
++
++// IMPORTANT: This fix is necessary because the original WmcParams::assignment_weight uses 
++// a non-Copy Semiring type (T) by value, which is not possible in this structure, 
++// so we must clone the weights from var_to_val.
++// I have adjusted `assignment_weight` to use `clone()` on the weights.
++
++// Also, the original WmcParams::new uses `*value` which is fine only if T: Copy,
++// which is required by the Semiring trait. Since Polynomial cannot be Copy, 
++// this is a potential issue in the original library's design for non-Copy semirings. 
++// However, the trait *requires* Copy, so we proceed by satisfying all other traits 
++// and noting that `Polynomial` cannot satisfy `Copy`.
++
++// --- Simple Inner Semiring for Demonstration ---
++#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
++pub struct RealSemiring(pub f64);
++
++impl ops::Add<RealSemiring> for RealSemiring {
++    type Output = Self;
++    fn add(self, rhs: RealSemiring) -> Self::Output {
++        RealSemiring(self.0 + rhs.0)
++    }
++}
++
++impl ops::Mul<RealSemiring> for RealSemiring {
++    type Output = Self;
++    fn mul(self, rhs: RealSemiring) -> Self::Output {
++        RealSemiring(self.0 * rhs.0)
++    }
++}
++
++impl std::fmt::Display for RealSemiring {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        write!(f, "{}", self.0)
++    }
++}
++
++impl Semiring for RealSemiring {
++    fn one() -> Self { RealSemiring(1.0) }
++    fn zero() -> Self { RealSemiring(0.0) }
++}

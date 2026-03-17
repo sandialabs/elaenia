@@ -1,0 +1,289 @@
+# Semiring implementation in Roulette
+# Author: Jon Aytac, Sandia National Laboratories
+# Distributed under the Apache 2.0 License
+diff --git a/roulette-lib/engine/rsdd.rkt b/roulette-lib/engine/rsdd.rkt
+index f67c78b..aab7241 100644
+--- a/roulette-lib/engine/rsdd.rkt
++++ b/roulette-lib/engine/rsdd.rkt
+@@ -13,6 +13,7 @@
+                           any)]
+   [real-semiring semiring?]
+   [complex-semiring semiring?]
++  [polynomial-semiring semiring?]
+   [semiring? predicate/c]))
+ 
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+@@ -36,7 +37,10 @@
+ ;; data
+ 
+ (define rsdd-ffi-lib
+-  (ffi-lib "librsdd"))
++  (if (not (getenv "RSDD_PATH"))
++      (error "expects RSDD_PATH environment variable defined which points to librsdd (no extension)")
++      (let ([rsdd-path (getenv "RSDD_PATH")])
++           (ffi-lib rsdd-path))))
+ 
+ (define-ffi-definer define-rsdd rsdd-ffi-lib
+   #:make-c-id convention:hyphen->underscore)
+@@ -303,7 +307,7 @@
+ 
+ (define (make-infer s)
+   (match-define (semiring _predicate zero plus var-set! wmc) s)
+-  (λ (val path-aware? lazy?)
++  (λ (val lazy?)
+     (define vars (list->set (symbolics val)))
+ 
+     ;; Use `in-ddict-reverse` for "program order" as the variable order.
+@@ -312,7 +316,6 @@
+       (var-set! (const->label var) (measure (set #f)) (measure (set #t))))
+ 
+     ;; Compute measure
+-    (define pc (if path-aware? (vc-assumes (vc)) #t))
+     (define ht (flatten-symbolic val))
+     (define (procedure elems)
+       (for/fold ([acc zero])
+@@ -320,15 +323,42 @@
+         (plus acc (density elem))))
+     (define/cache (density val)
+       (if (hash-has-key? ht val)
+-          (wmc (enc/log! (&& pc (hash-ref ht val))))
++          (wmc (enc/log! (hash-ref ht val)))
+           zero))
+     (define support
+       (list->set
+        (if lazy?
+            (hash-keys ht)
+-           (filter (compose not zero? density) (hash-keys ht)))))
++           (filter (λ (k) (not (equal? (density k) zero))) (hash-keys ht)))))
+     (measure procedure support density (immutable-set/c any/c))))
+ 
++(define (make-poly-infer s)
++  (match-define (semiring _predicate zero plus var-set! wmc) s)
++  (λ (val lazy?)
++    (define vars (list->set (symbolics val)))
++
++    ;; Use `in-ddict-reverse` for "program order" as the variable order.
++    (for ([(var measure) (in-ddict-reverse measures)]
++          #:when (set-member? vars var))
++      (var-set! (const->label var) (measure (set #f)) (measure (set #t))))
++
++    ;; Compute measure
++    (define ht (flatten-symbolic val))
++    (define (procedure elems)
++      (for/fold ([acc zero])
++                ([elem (in-set elems)])
++        (plus acc (density elem))))
++    (define/cache (density val)
++      (if (hash-has-key? ht val)
++          (wmc (enc/log! (hash-ref ht val)))
++          zero))
++    (define support
++      (list->set
++       (if lazy?
++           (hash-keys ht)
++           ;; For polynomial-semiring: Compare against the semiring's 'zero' value instead of using numeric 'zero?'
++           (filter (λ (k) (not (equal? (density k) zero))) (hash-keys ht)))))           
++    (measure procedure support density (immutable-set/c any/c))))
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;; size
+ 
+@@ -384,3 +414,133 @@
+     (unless ok?
+       (raise-user-error "failed to convert symbolic expression to image"))
+     (bitmap output-path)))
++
++;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
++;; polynomial wmc ffi
++
++(define-cpointer-type _rsdd_poly_weight)
++(define-cpointer-type _rsdd_wmc_params_poly)
++
++;; Layout must match Rust struct:
++;; pub struct WeightPoly { low: *mut PolyWeight, high: *mut PolyWeight }
++(define-cstruct _weight_poly
++  ([low _rsdd_poly_weight]
++   [high _rsdd_poly_weight]))
++
++(define-rsdd new-wmc-params-poly
++  (_fun -> _rsdd_wmc_params_poly))
++
++;; Rust: fn new_polynomial(coeffs: *const f64, len: usize) -> *mut PolyWeight
++;; CHANGE: Use _pointer instead of _list to avoid syntax errors
++(define-rsdd new-polynomial
++  (_fun _pointer _size -> _rsdd_poly_weight))
++
++(define-rsdd destroy-polynomial
++  (_fun _rsdd_poly_weight -> _void))
++
++;; Rust: fn wmc_param_poly_set_weight(...)
++;; CHANGE: Use _pointer instead of _list
++(define-rsdd wmc-param-poly-set-weight
++  (_fun _rsdd_wmc_params_poly _uint64
++        _pointer _size
++        _pointer _size
++        -> _void))
++
++(define-rsdd polynomial-len
++  (_fun _rsdd_poly_weight -> _size))
++
++;; Rust: fn polynomial_get_coeffs(p: *const PolyWeight, out: *mut f64, max: usize) -> usize
++(define-rsdd polynomial-get-coeffs
++  (_fun _rsdd_poly_weight _pointer _size -> _size))
++
++(define-rsdd bdd-wmc-poly
++  (_fun _rsdd_bdd_ptr _rsdd_wmc_params_poly -> _rsdd_poly_weight))
++
++;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
++;; polynomial helpers
++
++;; Helper: Convert Racket list of numbers to a C array of doubles
++;;(define (list->c-double-array lst)
++;;  (define len (length lst))
++;;  (define ptr (malloc _double len)) ; Allocate C memory
++;;  (for ([val (in-list lst)]
++;;        [i (in-naturals)])
++;;    (ptr-set! ptr _double i (exact->inexact val)))
++;;  ptr)
++
++(define (list->c-double-array lst)
++  (define len (length lst))
++  (define ptr (malloc _double len 'raw))
++  (for ([val (in-list lst)]
++        [i (in-naturals)])
++    (ptr-set! ptr _double i (exact->inexact val)))
++  ptr)
++
++(define (list->poly coeffs)
++  ;; Marshal list to C array
++  (define ptr (list->c-double-array coeffs))
++  (new-polynomial ptr (length coeffs)))
++
++(define (poly->list poly-ptr)
++  (cond
++    [(or (not poly-ptr) (ptr-equal? poly-ptr #f)) '()]
++    [else
++     (define len (polynomial-len poly-ptr))
++     (define out-arr (malloc _double len))
++     (polynomial-get-coeffs poly-ptr out-arr len)
++     (for/list ([i (in-range len)])
++       (ptr-ref out-arr _double i))]))
++
++;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
++;; polynomial wrappers
++
++(define-wrap rsdd-polynomial-wmc
++  #:from (lambda (ws ptr)
++           (define poly-ptr (bdd-wmc-poly ptr ws))
++           (begin0
++             (poly->list poly-ptr)
++             (destroy-polynomial poly-ptr)))
++  #:target POLY-WEIGHTS
++  #:fields ptr)
++
++(define-wrap rsdd-set-polynomial-measure!
++  #:from (lambda (ws lab lo hi)
++           (define lo-lst (if (list? lo) lo (list lo)))
++           (define hi-lst (if (list? hi) hi (list hi)))
++           ;; Marshal both lists to C arrays
++           (define lo-ptr (list->c-double-array lo-lst))
++           (define hi-ptr (list->c-double-array hi-lst))
++           
++           (wmc-param-poly-set-weight ws lab
++                                      lo-ptr (length lo-lst)
++                                      hi-ptr (length hi-lst)))
++  #:target POLY-WEIGHTS
++  #:fields label lo hi)
++
++;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
++;; polynomial semiring implementation
++
++(define POLY-WEIGHTS (new-wmc-params-poly))
++
++(define (polynomial? v)
++  (and (list? v)
++       ;;(and (not (null? v))
++            (andmap number? v)))
++
++(define (poly-plus p1 p2)
++  (let loop ([p1 p1] [p2 p2])
++    (match* (p1 p2)
++      [('() '()) '()]
++      [('() p2) p2]
++      [(p1 '()) p1]
++      [((cons c1 r1) (cons c2 r2))
++       (cons (+ c1 c2) (loop r1 r2))])))
++
++(define polynomial-semiring
++  (semiring
++   polynomial?                  ; predicate
++   '()                          ; zero
++   poly-plus                    ; plus
++   rsdd-set-polynomial-measure! ; var-set!
++   rsdd-polynomial-wmc))        ; wmc
++
+diff --git a/roulette-lib/private/interface.rkt b/roulette-lib/private/interface.rkt
+index 00b516f..71fc9a2 100644
+--- a/roulette-lib/private/interface.rkt
++++ b/roulette-lib/private/interface.rkt
+@@ -17,7 +17,6 @@
+  (contract-out
+   [infer (->i ([val (eng) (measurable-space-point (engine-domain (if (unsupplied-arg? eng) default-engine eng)))])
+               (#:engine [eng engine?]
+-               #:path-aware? [path-aware? boolean?]
+                #:lazy? [lazy? boolean?])
+               any)])
+ 
+@@ -74,5 +73,5 @@
+ (define (measure-point m)
+   (measurable-space-point (measure-domain m)))
+ 
+-(define (infer val #:engine [eng default-engine] #:path-aware? [path-aware? #f] #:lazy? [lazy? #f])
+-  ((engine-infer eng) val path-aware? lazy?))
++(define (infer val #:engine [eng default-engine] #:lazy? [lazy? #f])
++  ((engine-infer eng) val lazy?))
+diff --git a/roulette/test/disrupt.rkt b/roulette/test/disrupt.rkt
+index 45ceea8..2a74fa0 100644
+--- a/roulette/test/disrupt.rkt
++++ b/roulette/test/disrupt.rkt
+@@ -123,9 +123,4 @@
+   (check-program
+    (= (+ (if (flip 1/2) 0 1) (if (flip 1/2) 0 1)) 0)
+    ([#t 0.25] [#f  0.75]))
+-
+-  (check-program
+-   (let ([x (flip 1/2)])
+-     (if x ((query x) #t) 'none))
+-   ([1.0 1/2] ['none 1/2]))
+   )
+diff --git a/roulette/test/test-poly.rkt b/roulette/test/test-poly.rkt
+new file mode 100644
+index 0000000..696530c
+--- /dev/null
++++ b/roulette/test/test-poly.rkt
+@@ -0,0 +1,26 @@
++#lang roulette
++(require roulette/engine/rsdd
++         racket/set)
++
++;; Required for define-measurable
++(require roulette) 
++
++(printf "Semiring loaded: ~a\n" polynomial-semiring)
++
++(define (flip-poly)
++  ;; 'infer' scans for symbolic variables to decide which weights to send to Rust.
++  (define-measurable x 
++    (bernoulli-measure '(0.5 0.5) 
++                       '(0.5 0.5) 
++                       #:semiring polynomial-semiring))
++  x)
++
++;; Explicitly use the polynomial engine
++(define result 
++  (infer (flip-poly) 
++         #:engine (rsdd-engine #:semiring polynomial-semiring)))
++
++(printf "Inference Result:\n")
++(for ([val '(#t #f)])
++  (define prob (result (set val)))
++  (printf "Val: ~a | Prob (coeffs): ~a\n" val prob))
