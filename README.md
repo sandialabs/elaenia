@@ -39,8 +39,9 @@ maintained as a fork for [ReFlow](https://github.com/nasa/reflow).
   analysis, but for administrative reasons is funded under this
   project. This work was done by Noam Steiner Tomer at a summer
   internship at Sandia developing a standard library of routines
-  for [Roulette](https://dl.acm.org/doi/abs/10.1145/3729334).
-  (Technical report to appear).
+  for [Roulette](https://dl.acm.org/doi/abs/10.1145/3729334). A
+  link to the technical report can be found on OSTI:
+  [Technical report](https://www.osti.gov/biblio/3003005).
 
 - `polnomial-semiring-roulette`. A patch for polynomial semiring
   implementation in Roulette and its underlying inference engine RSDD.
@@ -52,9 +53,9 @@ maintained as a fork for [ReFlow](https://github.com/nasa/reflow).
 
 ## Further Reading
 
-- I gave a talk which is an overview of this project to the Digital
-  Assurance for High Consequence Systems Multi-intitutional Community of
-  Practice (DAHCS MiCoP). It is recorded on
+- Sam Pollard gave a talk which is an overview of this project to the
+  Digital Assurance for High Consequence Systems Multi-institutional
+  Community of Practice (DAHCS MiCoP). It is recorded on
   [YouTube](https://www.youtube.com/watch?v=8tCcfR5COHc)
 
 ## Licenses
@@ -80,6 +81,6 @@ the U.S. Department of Energy’s National Nuclear Security Administration
 under contract DE-NA-0003525.
 
 The name Elaenia is taken from the name of an album by a band called
-[Floating Points](https://en.wikipedia.org/wiki/Elaenia_(album).
+[Floating Points](https://en.wikipedia.org/wiki/Elaenia_(album)).
 It is also a kind of bird.
 
