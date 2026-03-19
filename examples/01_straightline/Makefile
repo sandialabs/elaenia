@@ -42,10 +42,9 @@ sqroot_2nd: sqroot_2nd.c
 sqroot: sqroot.c
 	frama-c $(WP) -wp-model +float -wp-prover $(WP_PROVERS) $(GEN_WHYML) $(DEBUG) -wp-fct $@ $^
 
-# Weirdly enough, pvs -batch appears to require you have emacs up and running...
-attr: attr.c attr.pvs attr.input
-	$(CPP) -fpreprocessed attr.pvs $@.i 
-	precisa attr.pvs attr.input
+sqroot-pvs: sqroot.pvs sqroot.input
+	$(CPP) -fpreprocessed $< $@.i
+	precisa $^
 	pvs -batch attr_cert.pvs
 	pvs -batch attr_num_cert.pvs
 	pvs -batch attr_real.pvs

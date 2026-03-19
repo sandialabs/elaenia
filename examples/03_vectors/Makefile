@@ -34,7 +34,10 @@ wp-norm: norm.c
 mean-var: mean-var.c
 	$(CC) -o $@ $^
 
+gravitation: gravitation.c
+	$(CC) -o $@ $^
+
 .PHONY: clean
 clean:
-	$(RM) dot dot_union norm mean-var *.o .frama-c
+	$(RM) dot dot_union norm mean-var gravitation *.o .frama-c
 

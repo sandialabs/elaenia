@@ -1,4 +1,4 @@
-/* Frama-C Examples (at the UUR level) which gives some examples
+/* Frama-C Examples which give some examples
  * of where Frama-C may have trouble parsing and analyzing, their
  * build instructions, and the solutions.
  */

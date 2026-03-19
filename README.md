@@ -13,9 +13,9 @@ improvement rather than writing our own Frama-C plug-ins. This is now
 maintained as a fork for [ReFlow](https://github.com/nasa/reflow).
 
 - `examples` - example functions for analysis. They are ordered in
-  increasing complexity as follows
+  roughly increasing complexity as follows
     1. 01_straightline - No control flow, no transcendentals.
-    2. 02_transcend    - No control flow, transcendentals (sin, cos, sqrt)
+    2. 02_tricky       - Edge cases with scalars and control flow
     3. 03_vectors      - No control flow, but operations on vectors
     4. 04_matrices     - Operations on matrices
     5. 05_kalman       - Various Kalman filter examples
@@ -61,7 +61,7 @@ maintained as a fork for [ReFlow](https://github.com/nasa/reflow).
 
 This repository is licensed under the LGPLv3 (see LICENSE), with the
 exceptions of `examples/04_matrices/matrix-int/matmul.c`, is licensed
-under CC-BY, and the `polnomial-semiring-roulette` directory, which are
+under CC-BY, and the `polynomial-semiring-roulette` directory, which are
 licensed under the MIT and Apache licenses (labeled in their respective
 files).
 

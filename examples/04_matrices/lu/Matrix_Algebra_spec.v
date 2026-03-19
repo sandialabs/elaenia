@@ -1,3 +1,4 @@
+(* Author: TJ Machado *)
 Require Import VST.floyd.proofauto.
 Require Import Matrix_Algebra.
 Declare Scope float32_scope.
