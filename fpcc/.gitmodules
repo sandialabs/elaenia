@@ -1,0 +1,4 @@
+[submodule "external/PRECiSA"]
+	path = external/PRECiSA
+	url = https://github.com/nasa/PRECiSA.git
+

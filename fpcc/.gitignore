@@ -1,0 +1,12 @@
+# Haskell build files and external dependencies
+.stack-work/
+stack.yaml.lock
+external/filibsrc-3.0.2.tar.gz
+external/filibsrc/
+FPCC.cabal
+
+# Editor and OS files
+*~
+tags
+.*.sw[o-p]
+

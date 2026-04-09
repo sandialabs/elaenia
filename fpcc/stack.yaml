@@ -1,0 +1,23 @@
+# lts-22.44 is the same ghc version that PRECiSA uses (9.6.7)
+snapshot: lts-22.44
+
+# User packages to be built.
+packages:
+- .
+- external/PRECiSA/PRECiSA
+
+allow-newer: true
+allow-newer-deps:
+- precisa
+
+# Dependency packages to be pulled from upstream that are not in the snapshot.
+extra-deps:
+- ieee-0.7@sha256:4f444419a7861f04fb64502d14688c80e8293a86a608f6d14c3010c9bd96b6d1,1327
+
+# Control whether we use the GHC we find on the path
+system-ghc: false
+
+# Extra directories used by Stack for building
+# There should be one line here for Kodiak
+
+extra-lib-dirs: [/Users/spolla/Documents/dahcs/ldrd/fpcc/external/PRECiSA/Kodiak/build]

@@ -1,0 +1,6 @@
+sqroot: THEORY
+BEGIN
+IMPORTING float@ieee754_double
+
+sqroot(x: double): double  = Dsub(Dadd(Dsub(Dadd((1 / 1), Dmul((1 / 2), x)), Dmul(Dmul((1 / 8), x), x)), Dmul(Dmul(Dmul((1 / 16), x), x), x)), Dmul(Dmul(Dmul(Dmul((5 / 128), x), x), x), x))
+END sqroot
