@@ -43,9 +43,6 @@ maintained as a fork for [ReFlow](https://github.com/nasa/reflow).
   link to the technical report can be found on OSTI:
   [Technical report](https://www.osti.gov/biblio/3003005).
 
-- `polnomial-semiring-roulette`. A patch for polynomial semiring
-  implementation in Roulette and its underlying inference engine RSDD.
-
 - `imptofunc` - A starting point for a translation from an imperative
   language for numerics and translating it into a language amenable for
   formal specification (such as PVS/PRECiSA). This is the precursor to an
