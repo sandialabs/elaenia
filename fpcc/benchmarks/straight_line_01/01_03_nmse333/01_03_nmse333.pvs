@@ -1,0 +1,7 @@
+01_03_nmse333: THEORY
+BEGIN
+IMPORTING float@aerr754dp
+
+nmse(x: double): double  = Dadd(Dsub(Ddiv((1 / 1), Dadd(x, (1 / 1))), Ddiv((2 / 1), x)), Ddiv((1 / 1), Dsub(x, (1 / 1))))
+
+END 01_03_nmse333

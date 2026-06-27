@@ -1,0 +1,7 @@
+01_01_twice: THEORY
+BEGIN
+IMPORTING float@aerr754dp
+
+twice(x: double): double  = Dmul((2 / 1), x)
+
+END 01_01_twice

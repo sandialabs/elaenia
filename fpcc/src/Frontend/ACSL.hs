@@ -1,4 +1,5 @@
 {- HLINT ignore "Use $>" -}
+{-# LANGUAGE TupleSections #-}
 module Frontend.ACSL where
 
 import Text.Parsec
@@ -49,16 +50,15 @@ acslComments =
         pure (c : cs)
 
 parseAcslComments :: String -> [([C.CExpr], Int)]
-parseAcslComments str = do
-  case parse acslComments "" str of
-    Left err -> error $ show err
-    Right acsls -> map parseCommentBlock acsls
+parseAcslComments str =
+  parse acslComments "" str `handleError` map parseCommentBlock
+  where
+    parseCommentBlock :: (SourcePos, SourcePos, [String]) -> ([C.CExpr], Int)
+    parseCommentBlock (st, end, reqs) =
+      mapM (parseCExpr st) reqs `handleError` (,sourceLine end) 
+    handleError :: Show e => Either e b -> (b -> c) -> c
+    handleError = flip $ either (error . show)
 
-parseCommentBlock :: (SourcePos, SourcePos, [String]) -> ([C.CExpr], Int)
-parseCommentBlock (st, end, reqs) =
-  case mapM (parseCExpr st) reqs of
-    Left err -> error $ show err
-    Right reqExps -> (reqExps, sourceLine end)
 
 
 parseCExpr :: SourcePos -> String -> Either C.ParseError C.CExpr

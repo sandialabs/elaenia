@@ -1,0 +1,8 @@
+01_05_sin: THEORY
+BEGIN
+IMPORTING float@aerr754dp
+
+sin_dbl(x: double): double  = LET y:double=Dsub(Dadd(Dsub(x, Ddiv(Dmul(Dmul(x, x), x), 6)), Ddiv(Dmul(Dmul(Dmul(Dmul(x, x), x), x), x), 120)), Ddiv(Dmul(Dmul(Dmul(Dmul(Dmul(Dmul(x, x), x), x), x), x), x), 5040))
+                              IN y
+
+END 01_05_sin

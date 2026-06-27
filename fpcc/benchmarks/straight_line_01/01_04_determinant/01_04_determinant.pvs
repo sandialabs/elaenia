@@ -1,0 +1,7 @@
+01_04_determinant: THEORY
+BEGIN
+IMPORTING float@aerr754dp
+
+determinant_dbl(a: double, b: double, c: double, d: double, e: double, f: double, g: double, h: double, i: double): double  = Dsub(Dadd(Dadd(Dmul(Dmul(a, e), i), Dmul(Dmul(b, f), g)), Dmul(Dmul(c, d), h)), Dadd(Dadd(Dmul(Dmul(c, e), g), Dmul(Dmul(b, d), i)), Dmul(Dmul(a, f), h)))
+
+END 01_04_determinant

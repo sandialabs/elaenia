@@ -18,6 +18,7 @@ import Control.Lens
       traversed,
       Plated (..))
 import Text.Printf (printf)
+import Debug.Trace (trace)
 
 data LintError = LintError String NodeInfo deriving (Show)
 
@@ -54,11 +55,12 @@ globalMutLinter globVars funDecl = map (\(id',p) -> LintError (message id') p) g
     message = printf "Illegal mutation of global variable (%s)"
     globMuts :: [(Ident, NodeInfo)]
     globMuts = [(id', p) | (p, Var _ id', _) <- assmts, gVar <- globVars', id' == gVar]
-    localArgs :: [Ident]
-    localArgs = fst <$> funArgsTys funDecl
-    globVars' = globVars \\ localArgs
-    assmts :: [(NodeInfo, Exp NodeInfo, Exp NodeInfo)]
-    assmts = toListOf (traversed . cosmos . _Ass) (funBody funDecl)
+      where
+        localArgs :: [Ident]
+        localArgs = fst <$> funArgsTys funDecl
+        globVars' = globVars \\ localArgs
+        assmts :: [(NodeInfo, Exp NodeInfo, Exp NodeInfo)]
+        assmts = toListOf (traversed . cosmos . _Ass) (funBody funDecl)
 
 condLinter :: FuncDecl NodeInfo -> [LintError]
 condLinter funDecl = map (LintError "Conditionals not supported" . fstOfFour) ifs
@@ -71,12 +73,10 @@ annotationLinter :: [Ident] -> FuncDecl NodeInfo -> [LintError]
 annotationLinter globVars funDecl =
   map (\(id',p) -> LintError (printf "Undefined variable in precondition (%s)" id') p) undefVars
   where
-    undefVars = [(id', p) 
+    undefVars = [(id', p)
                 | (p, id') <- preconds,
-                   arg <- map fst $ funArgsTys funDecl,
-                   id' /= arg,
-                   gVar <- globVars,
-                   id' /= gVar
+                   id' `notElem` map fst (funArgsTys funDecl),
+                   id' `notElem` globVars
                 ]
     preconds :: [(NodeInfo, Ident)]
     preconds = toListOf (traversed . cosmos . _Var) (preConditions funDecl)
@@ -91,17 +91,16 @@ voidFuncLinter funDecl = case returns of
     returns = toListOf (traversed . cosmos . _Return) (funBody funDecl)
 
 
-
 lint :: ImpProg -> [LintError]
 lint prog =
   concatMap (mconcat linters) [ f | (Func f@(FuncDecl{})) <- prog ]
   where
     linters :: [FuncDecl NodeInfo -> [LintError]]
     linters =
-      [globalMutLinter globalVars,
-        condLinter,
-        voidFuncLinter,
-        annotationLinter globalVars
-      ]
-    globalVars = [ id' | (VarDecl _ _ id' _) <- prog]
+      let globalVars = [ id' | (VarDecl _ _ id' _) <- prog] in
+        [globalMutLinter globalVars,
+          condLinter,
+          voidFuncLinter,
+          annotationLinter globalVars]
+
 

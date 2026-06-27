@@ -1,0 +1,8 @@
+01_06_doppler1: THEORY
+BEGIN
+IMPORTING float@aerr754dp
+
+doppler1(u: double, v: double, T: double): double  = LET t1:double=Dadd((1657 / 5), Dmul((3 / 5), T))
+                                                     IN Ddiv(Dmul(Dneg(t1), v), Dmul(Dadd(t1, u), Dadd(t1, u)))
+
+END 01_06_doppler1

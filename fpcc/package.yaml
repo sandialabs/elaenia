@@ -31,7 +31,10 @@ dependencies:
 - scientific
 - uniplate
 - text
+- extra
 - prettyprinter
+- directory
+- optparse-applicative
 
 ghc-options:
 - -Wall
@@ -68,3 +71,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - FPCC
+    - hspec

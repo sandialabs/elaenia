@@ -2,12 +2,12 @@
 {-# LANGUAGE LambdaCase #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE InstanceSigs #-}
-module Intermediate.PrettyPrinter (PP, pp) where
+module Intermediate.FuncPretty (PP, pp) where
 
 import Data.List ( intercalate )
 import Intermediate.Func
 import Text.Printf
-import Lib
+import Lib ( PP (..), Ident )
 
 
 instance PP [(Ident, FType)] where
@@ -92,6 +92,7 @@ instance PP (Exp a) where
   pp (EJust _ e) = printf "Just(%s)" (pp e)
   pp (ENothing _) = "Nothing"
   pp (FuncCall _ f args) = printf "%s(%s)" (pp f) (intercalate "," (map pp args))
+  pp (EUnOp _ op e) = printf "%s%s" (pp op) (pp e)
   pp _ = undefined
 
 ppQuotes :: String -> String
@@ -108,3 +109,4 @@ instance PP Op where
   pp Neq = "/="
   pp LtEq = "<="
   pp Gt = ">"
+  pp Lt = "<"

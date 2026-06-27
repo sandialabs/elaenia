@@ -72,6 +72,7 @@ data Lam a = Lam
 data Exp a =
     Var a Ident FType
   | Infix a (Exp a) Op (Exp a)
+  | EUnOp a Op (Exp a)
   | ECompRel a (Exp a) Op (Exp a) Op (Exp a)
   | EInt a Int
   | EFloat a String
@@ -84,6 +85,7 @@ data Exp a =
   | ERecWrite a Ident (Exp a) (Exp a)
   | EVecRead a Ident FType (Exp a)
   | EVecWrite a Ident FType (Exp a) (Exp a)
+  | EVecWrites a Ident FType (Exp a) [Exp a]
   | EString a String
   | EIte a (Exp a) (Exp a) (Exp a)
   | ENot a (Exp a)

@@ -13,8 +13,8 @@ import Data.List (intersperse)
 import qualified Data.Text as T
 import Prettyprinter
   ( Doc, Pretty(..)
-  , align, brackets, comma, group
-  , hang, hsep, line, parens, punctuate, sep
+  , align, group
+  , hang, hsep, line, parens, sep
   , vsep, (<+>)
   )
 
@@ -57,7 +57,7 @@ prettyExpr = \case
           , parens (align (vsep (map prettyBinding bs)))
           , prettyExpr body
           ]
-  EArray es      -> brackets (align (sep (punctuate comma (map prettyExpr es))))
+  EArray es      -> parens ("array" <+> align (sep (map prettyExpr es)))
   EAnnotate ps e ->
     parens $
       hang 2 $

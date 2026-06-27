@@ -1,35 +1,29 @@
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Backend.PVS (translate, prettyPrint) where
+module Backend.PVS.PVSTranslator (translatePVS, PVSOutput (..), P.Program) where
 
-import Lib (TranslError, Ident)
-
-import Control.Monad (void)
-import Control.Monad.Except (Except, runExcept)
-import Control.Monad.Error.Class (MonadError)
-import Language.C (NodeInfo)
-import Data.Scientific (Scientific)
-import Data.Maybe (catMaybes)
-import System.Exit (die)
-
+import Lib (Ident)
+import Error (throwTranslErrMsg)
+import Backend.Backend (BackendM, backendOption)
+import Intermediate.FuncPretty (pp)
 import qualified Intermediate.Func as F
 import qualified AbsPVSLang as P
 import qualified Operators as P
-import qualified PPExt as P
+
+import Control.Monad (void)
+import Language.C (NodeInfo)
+import Data.Scientific (Scientific)
+import Data.Maybe (catMaybes)
 import Text.Printf (printf)
+import Data.List (intercalate)
 
-import System.FilePath (takeBaseName)
 
 
-newtype PVSTransl p a = PVSTransl {unTrans :: Except (TranslError p) a}
-  deriving
-    ( Functor,
-      Applicative,
-      Monad,
-      MonadError (TranslError p)
-    )
+type Transl a = BackendM NodeInfo a
 
-type Transl = PVSTransl NodeInfo
+data PVSOutput = PVSOutput {
+                  pvsProgram :: P.Program,
+                  pvsDotInput :: String
+                }
 
 
 translType ::  F.FType -> Transl P.PVSType
@@ -58,9 +52,38 @@ translOp F.Div = return P.DivOp
 translOp _ = undefined
 -- [TODO] throw error here
 
+translUnOp :: F.Op -> Transl P.UnOp
+translUnOp F.Sub = return P.NegOp
+translUnOp _     = undefined
+
 
 readRational :: String -> Rational
 readRational str = toRational (read str :: Scientific)
+
+expType :: P.FAExpr -> Transl P.PVSType
+expType (P.FInt _)                 = return P.TInt
+expType (P.FCnst ty _)             = return ty
+expType (P.FInterval ty _ _)       = return ty
+expType (P.FEFun _ _ _ ty _)       = return ty
+expType (P.FVar ty _)              = return ty
+expType (P.StructVar ty _)         = return ty
+expType (P.FArrayElem ty _ _)      = return ty
+expType (P.FListElem ty _ _)       = return ty
+expType (P.FTupleElem ty _ _)      = return ty
+expType (P.FRecordElem ty _ _)     = return ty
+expType (P.TypeCast _ toTy _)      = return toTy
+expType (P.ToFloat ty _)           = return ty
+expType (P.Value e)                = expType e
+expType (P.BinaryFPOp _ ty _ _)    = return ty
+expType (P.UnaryFPOp _ ty _)       = return ty
+expType (P.FFma ty _ _ _)          = return ty
+expType (P.FMap ty _ _)            = return ty
+expType (P.FFold ty _ _ _ _)       = return ty
+expType (P.Let _ body)             = expType body
+expType (P.Ite _ t _)              = expType t
+expType _                          = undefined
+
+
 
 translExp :: F.Exp a -> Transl P.FAExpr
 translExp (F.Var _ id' ty) = P.FVar <$> translType ty <*> pure id'
@@ -72,6 +95,9 @@ translExp (F.ELet _ id' ty val e) = do
   val' <- translExp val
   e' <- translExp e
   return $ P.Let [(id',ty',val')] e'
+translExp (F.EUnOp _ op e) = do
+  e' <- translExp e
+  P.UnaryFPOp <$> translUnOp op <*> expType e' <*> pure e'
 -- [TODO] handle implicit casting
 translExp e@(F.Infix _ e1 op e2) =
   case F.binOpType (void e) of
@@ -81,9 +107,9 @@ translExp e@(F.Infix _ e1 op e2) =
       error "can't infer type"
 translExp (F.FuncCall _ (F.Var _ funId (F.TFun _ retTy)) args) =
   P.FEFun False funId P.ResValue <$> translType retTy <*> mapM translExp args
-translExp (F.EVecRead _ id' ty ix) = 
+translExp (F.EVecRead _ id' ty ix) =
   P.FArrayElem <$> translType ty <*> pure id' <*> mapM translExp [ix]
-translExp (F.EVecWrite {}) = error "vector writes not supported within scalar functions" 
+translExp (F.EVecWrite {}) = error "vector writes not supported within scalar functions"
 translExp e = error $ show (void e)
 
 
@@ -103,26 +129,8 @@ translCollExp (F.FuncCall _ (F.Var _ funId (F.TFun _ retTy)) args) =
 translCollExp (F.FuncCall {}) = error "lambda calls not supported yet"
 translCollExp _ = undefined
 
-translate :: [F.TLD a] -> IO P.Program
-translate tlds = either (die . show) return (runTrns prog)
-  where
-    prog = catMaybes <$> mapM translTld (filterMain tlds)
-    runTrns :: PVSTransl p a -> Either (TranslError p) a
-    runTrns = runExcept  . unTrans
 
-filterMain :: [F.TLD a] -> [F.TLD a] 
-filterMain = filter (not . isMain)
-  where
-    isMain (F.TLFuncDecl funDecl) = F.funId funDecl == "main"
-    isMain _ = False
 
-prettyPrint :: FilePath -> P.Program -> String
-prettyPrint file prog = header ++ progString ++ footer
-  where
-    progString = show $ P.prettyDoc prog
-    moduleName = takeBaseName file
-    header = printf "%s: THEORY\nBEGIN\nIMPORTING float@aerr754dp\n\n" moduleName
-    footer = printf "\n\nEND %s" moduleName
 
 translTld :: F.TLD a -> Transl (Maybe P.Decl)
 translTld (F.TLFuncDecl fDecl) = sequence $ Just $ do
@@ -137,7 +145,7 @@ translTld (F.TLFuncDecl fDecl) = sequence $ Just $ do
                translExp (F.funBody fDecl)
     _ -> -- Variable Declaration
       if isCollType fTy
-        then P.CollDecl False <$> 
+        then P.CollDecl False <$>
               translType (F.funRetTy fDecl) <*>
               pure (F.funId fDecl) <*>
               pure [] <*>
@@ -147,7 +155,7 @@ translTld (F.TLFuncDecl fDecl) = sequence $ Just $ do
               pure (F.funId fDecl) <*>
               pure [] <*>
               translExp (F.funBody fDecl)
-  where            
+  where
     translArg :: (Ident, F.FType) -> Transl P.Arg
     translArg (id',fTy) = P.Arg id' <$> translType fTy
 translTld (F.TLTypeSyn {}) = return Nothing
@@ -159,3 +167,39 @@ isCollType (P.Tuple {})  = True
 isCollType (P.Record {}) = True
 isCollType _             = False
 
+translatePVS :: [F.TLD a] -> Transl PVSOutput
+translatePVS tlds = do
+  ep <- backendOption "entryPoint"
+  case ep of
+    Nothing    -> throwTranslErrMsg "(PVS) No entry point provided"
+    Just entry ->
+      let prog = catMaybes <$> mapM translTld (filter keep tlds)
+          keep (F.TLFuncDecl funDecl) = F.funId funDecl == entry
+          keep _                      = True
+      in PVSOutput <$> prog <*> genDotInput entry tlds
+
+genDotInput :: Ident -> [F.TLD a] -> Transl String
+genDotInput entryId tlds =
+  case entryFun of
+    []          -> throwTranslErrMsg $ printf "Entry point (%s) does not exist" entryId
+    [entryFun'] -> spec entryFun'
+    _           -> undefined -- should never get here
+  where
+    spec :: F.FuncDecl a -> Transl String
+    spec fDec =
+      printf "%s(%s):%s"
+        entryId
+        (intercalate "," $ fst <$> F.funArgsTys fDec) <$>
+        translPreConds (F.funPreconds fDec)
+    entryFun =
+      [ funDecl
+      | (F.TLFuncDecl funDecl) <- tlds,
+         F.funId funDecl == entryId ]
+
+translPreConds :: [F.Exp a] -> Transl String
+translPreConds = fmap (intercalate ",") . mapM translPreCond
+  where
+    translPreCond :: F.Exp a -> Transl String
+    translPreCond (F.ECompRel _ min' _ e _ max') =
+      return $ printf "%s in [%s, %s]" (pp e) (pp min') (pp max')
+    translPreCond _ = undefined

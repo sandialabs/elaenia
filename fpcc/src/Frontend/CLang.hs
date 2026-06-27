@@ -15,6 +15,7 @@ import Frontend.ACSL
 import Lib
 import Text.Printf (printf)
 import qualified Data.Map as M
+
 import Control.Monad.Except
   ( ExceptT,
     MonadError (throwError),
@@ -23,12 +24,14 @@ import Control.Monad.Except
 import Control.Monad.State.Strict (StateT, MonadState, gets, modify, evalStateT)
 import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad (zipWithM)
-import Data.List (isSuffixOf)
+import Data.List (isSuffixOf, intercalate)
 
 import qualified Language.C as C
 import qualified Language.C.Data.Ident as C
 import Language.C.System.GCC
+import System.Directory (canonicalizePath)
 import System.Exit (die)
+import Error (TranslError (TranslError), throwTranslErrMsg)
 
 type ImpProg = [Statement C.NodeInfo]
 
@@ -72,13 +75,18 @@ parse
   -> IO ImpProg
 parse path = do
   fl <- readFile path
-  (C.CTranslUnit extDecls _) <- handle $ C.parseCFile (newGCC "gcc") Nothing [] path
+  inc <- canonicalizePath "../../../includes"
+  -- error $ show inc
+  (C.CTranslUnit extDecls _) <- handle $ C.parseCFile (newGCC "gcc") Nothing ["-E","-nostdinc", "-I" ++ inc] path
+  -- let extDecls' = filter ((== path) . nodeFile) extDecls
   prog <- handle $ translProg extDecls
   annots <- functionAnnotations extDecls fl
   return $ mergeAnnotations annots prog
   where
     translProg :: [C.CExtDecl] -> IO (Either (TranslError C.NodeInfo) ImpProg)
     translProg = translate . translImp
+    -- nodeFile :: C.CExternalDeclaration C.NodeInfo -> FilePath
+    -- nodeFile = C.posFile . C.posOf . C.nodeInfo
 
 handle :: Show a => IO (Either a b) -> IO b
 handle action = do
@@ -162,6 +170,10 @@ translType = \case
 translId :: C.Ident -> Ident
 translId (C.Ident id' _ _) = id'
 
+translUnOp :: C.CUnaryOp -> C.NodeInfo -> Trans Op
+translUnOp C.CMinOp _ = return Sub
+translUnOp o p = translError (printf "unsupported op: (%s)" (pShow o)) p
+
 translBinOp :: C.CBinaryOp -> C.NodeInfo -> Trans Op
 translBinOp op pos = case op of
   C.CMulOp -> return Mul
@@ -178,12 +190,9 @@ translBinOp op pos = case op of
 
 translFloatString :: a -> String -> Trans (Exp a)
 translFloatString a fStr = return $
-  if fStr `endsWith` "f" 
+  if "f" `isSuffixOf` fStr
     then EFloat a (init fStr)
     else EDouble a fStr
-  where
-    endsWith :: Eq a => [a] -> [a] -> Bool
-    endsWith suffix xs = suffix `isSuffixOf` xs
 
 
 translExp :: C.CExpr -> Trans (Exp C.NodeInfo)
@@ -201,6 +210,8 @@ translExp = \case
     case f' of
       (Var _ fId) -> return $ FunCall p fId args'
       _           -> translError (printf "(%s) not a function" (pShow f)) cCall
+  C.CUnary cOp ce p ->
+    EUnOp p <$> translUnOp cOp p <*> translExp ce
   C.CBinary cOp ce1 ce2 p            -> do
     e1 <- translExp ce1
     e2 <- translExp ce2
@@ -254,26 +265,15 @@ translCompoundBlocks = mapM go
       C.CBlockDecl decl -> translDecl decl
       blk@(C.CNestedFunDef _) -> translError "Nested functions not supported" blk
 
-translImp :: [C.CExtDecl] -> Trans ImpProg
-translImp = mapM tld
-
-tld :: C.CExtDecl -> Trans (Statement C.NodeInfo)
-tld decl = case decl of
-  -- Variable/Struct declaration
-  C.CDeclExt declr@(C.CDecl {}) -> translDecl declr
-  -- Function declaration
-  C.CFDefExt funDef@(C.CFunDef {}) -> Func <$> translFunDef funDef
-  extDecl         -> throwError $ TranslError "Decl not supported" (C.nodeInfo extDecl)
-
 
 pattern StructTypeSpec :: [C.CDecl] -> C.NodeInfo -> C.CDeclSpec
 pattern StructTypeSpec strFlds p <-
   C.CTypeSpec (C.CSUType (C.CStruct C.CStructTag Nothing (Just strFlds) [] _) p)
   
 
-pattern VariableDecl :: C.CTypeSpec -> C.Ident -> Maybe C.CInit -> C.NodeInfo -> C.CDecl
-pattern VariableDecl cTy cId cInit p <-
-  C.CDecl [C.CTypeSpec cTy] [(Just (C.CDeclr (Just cId) _ _ _ _), cInit, Nothing)] p
+pattern CDecl :: C.CTypeSpec -> C.Ident -> [C.CDerivedDeclarator C.NodeInfo] -> Maybe C.CInit -> C.NodeInfo -> C.CDecl
+pattern CDecl cTy cId cFunDeclrs cInit p <-
+  C.CDecl [C.CTypeSpec cTy] [(Just (C.CDeclr (Just cId) cFunDeclrs _ _ _), cInit, Nothing)] p
 
 pattern TypeDefDecl :: C.Ident ->  [C.CDecl] -> C.NodeInfo -> C.CDecl
 pattern TypeDefDecl cId fieldDecls p <-
@@ -307,8 +307,10 @@ structFldsSpec _ = undefined
 
 translDecl :: C.CDecl -> Trans (Statement C.NodeInfo)
 translDecl = \case
-  VariableDecl cTy cId cInit p ->
+  CDecl cTy cId [] cInit p ->
     VarDecl p <$> translType cTy <*> pure (translId cId) <*> translInitExp cInit
+  CDecl cTy cId cFunDeclrs cInit p ->
+    throwTranslErrMsg "function declarations not yet supported"
   (TypeDefDecl id' fldDecls p) -> do
     fldsTys <- mapM structFldsSpec fldDecls
     let fldsTys' = concat fldsTys
@@ -341,8 +343,18 @@ translFunDef
         _                                            ->
           mapM argTyPairs argDeclrs
       _                    -> undefined
-    argTyPairs (VariableDecl cTy cId _ _) = (,) (translId cId) <$> translType cTy
+    argTyPairs (CDecl cTy cId _ _ _) = (,) (translId cId) <$> translType cTy
     -- [TODO] Handle void type
     argTyPairs decl = error $ show decl
 translFunDef def = translError "funtion definition type not supported" (C.nodeInfo def)
 
+translImp :: [C.CExtDecl] -> Trans ImpProg
+translImp = mapM tld
+
+tld :: C.CExtDecl -> Trans (Statement C.NodeInfo)
+tld decl = case decl of
+  -- Variable/Struct declaration
+  C.CDeclExt declr@(C.CDecl {}) -> translDecl declr
+  -- Function declaration
+  C.CFDefExt funDef@(C.CFunDef {}) -> Func <$> translFunDef funDef
+  extDecl         -> throwError $ TranslError "Decl not supported" (C.nodeInfo extDecl)

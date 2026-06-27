@@ -1,0 +1,1 @@
+(FPCore twice (x) :pre (<= 0.0 x 100.0) (* 2.0 x))
